@@ -1,9 +1,9 @@
-<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="format-detection" content="telephone=no"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black"><link rel="icon" href="/assets/bilibili.jpg?v=2.1.1" type="image/png" sizes="32x32"><meta name="description" content="GC和GC Tuning                           GC的基础知识                           1.什么是垃圾       没有任何引用指向的一个对象或者多个对象（循环引用）                     2.如何定位垃圾        引用计数算法  对象有一个引用指向就是1，两个就是2，没有就是">
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="format-detection" content="telephone=no"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black"><link rel="icon" href="/assets/bilibili.jpg?v=2.1.1" type="image/png" sizes="32x32"><meta name="description" content="GC和GC Tuning                           GC的基础知识                           1.什么是垃圾       没有任何引用指向的一个对象或者多个对象（循环引用）">
 <meta property="og:type" content="article">
 <meta property="og:title" content="GC和GC Tuning">
 <meta property="og:url" content="https://bugordemo.github.io/2020/09/22/GC%E5%92%8CGC-Tuning/index.html">
 <meta property="og:site_name" content="DemoOrBug">
-<meta property="og:description" content="GC和GC Tuning                           GC的基础知识                           1.什么是垃圾       没有任何引用指向的一个对象或者多个对象（循环引用）                     2.如何定位垃圾        引用计数算法  对象有一个引用指向就是1，两个就是2，没有就是">
+<meta property="og:description" content="GC和GC Tuning                           GC的基础知识                           1.什么是垃圾       没有任何引用指向的一个对象或者多个对象（循环引用）">
 <meta property="og:locale" content="zh_CN">
 <meta property="og:image" content="https://pic.downk.cc/item/5f698ab9160a154a671f4635.png">
 <meta property="og:image" content="https://pic.downk.cc/item/5f698ab9160a154a671f462e.png">
@@ -16,7 +16,7 @@
 <meta property="og:image" content="https://pic.downk.cc/item/5f698c07160a154a672007e8.png">
 <meta property="og:image" content="https://pic.downk.cc/item/5f698c07160a154a672007e2.png">
 <meta property="article:published_time" content="2020-09-22T05:03:41.000Z">
-<meta property="article:modified_time" content="2020-09-22T05:39:05.758Z">
+<meta property="article:modified_time" content="2020-09-22T05:41:39.506Z">
 <meta property="article:author" content="hyf">
 <meta property="article:tag" content="JVM">
 <meta name="twitter:card" content="summary">
@@ -53,6 +53,8 @@ window.CONFIG = CONFIG;</script><meta name="generator" content="Hexo 5.2.0"></he
         <h3 id="1-什么是垃圾"   >
           <a href="#1-什么是垃圾" class="heading-link"><i class="fas fa-link"></i></a>1.什么是垃圾</h3>
       <p>没有任何<strong>引用指向</strong>的一个对象或者多个对象（循环引用）</p>
+<a id="more"></a>
+
 
         <h3 id="2-如何定位垃圾"   >
           <a href="#2-如何定位垃圾" class="heading-link"><i class="fas fa-link"></i></a>2.如何定位垃圾</h3>
