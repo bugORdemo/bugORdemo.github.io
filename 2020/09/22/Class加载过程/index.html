@@ -1,0 +1,294 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="format-detection" content="telephone=no"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black"><link rel="icon" href="/assets/bilibili.jpg?v=2.1.1" type="image/png" sizes="32x32"><meta name="description" content="class加载过程       有一个class文件在硬盘，需要怎样的过程才能加载到内存中？  Loading Linking Initializing">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Class加载过程">
+<meta property="og:url" content="https://bugordemo.github.io/2020/09/22/Class%E5%8A%A0%E8%BD%BD%E8%BF%87%E7%A8%8B/index.html">
+<meta property="og:site_name" content="DemoOrBug">
+<meta property="og:description" content="class加载过程       有一个class文件在硬盘，需要怎样的过程才能加载到内存中？  Loading Linking Initializing">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://pic.downk.cc/item/5f698927160a154a671e4aed.png">
+<meta property="og:image" content="https://pic.downk.cc/item/5f698927160a154a671e4acc.png">
+<meta property="og:image" content="https://pic.downk.cc/item/5f698927160a154a671e4ad9.png">
+<meta property="og:image" content="https://pic.downk.cc/item/5f698927160a154a671e4adc.png">
+<meta property="og:image" content="https://pic.downk.cc/item/5f698927160a154a671e4ae4.png">
+<meta property="article:published_time" content="2020-09-22T05:02:59.000Z">
+<meta property="article:modified_time" content="2020-09-22T05:38:50.306Z">
+<meta property="article:author" content="hyf">
+<meta property="article:tag" content="JVM">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://pic.downk.cc/item/5f698927160a154a671e4aed.png"><title>Class加载过程 | DemoOrBug</title><link ref="canonical" href="https://bugordemo.github.io/2020/09/22/Class%E5%8A%A0%E8%BD%BD%E8%BF%87%E7%A8%8B/"><link rel="dns-prefetch" href="https://cdn.jsdelivr.net"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.12.1/css/all.min.css" type="text/css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.css" type="text/css"><link rel="stylesheet" href="/css/index.css?v=2.1.1"><script>var Stun = window.Stun || {};
+var CONFIG = {
+  root: '/',
+  algolia: undefined,
+  fontIcon: {"prompt":{"success":"fas fa-check-circle","info":"fas fa-arrow-circle-right","warning":"fas fa-exclamation-circle","error":"fas fa-times-circle"},"copyBtn":"fas fa-copy"},
+  sidebar: {"offsetTop":"20px","tocMaxDepth":5},
+  header: {"enable":true,"showOnPost":true,"scrollDownIcon":true},
+  postWidget: {"endText":true},
+  nightMode: {"enable":true},
+  back2top: {"enable":true},
+  codeblock: {"style":"carbon","highlight":"light","wordWrap":false},
+  reward: true,
+  fancybox: true,
+  zoomImage: {"gapAside":"20px"},
+  galleryWaterfall: {"colWidth":"220px","gapX":"10px"},
+  lazyload: true,
+  pjax: {"avoidBanner":true},
+  externalLink: {"icon":{"enable":true,"name":"fas fa-external-link-alt"}},
+  shortcuts: {"switchPost":true},
+  prompt: {"copyButton":"复制","copySuccess":"复制成功","copyError":"复制失败"},
+  sourcePath: {"js":"js","css":"css","images":"images"},
+};
+
+window.CONFIG = CONFIG;</script><meta name="generator" content="Hexo 5.2.0"></head><body><div class="container" id="container"><header class="header" id="header"><div class="header-inner"><nav class="header-nav header-nav--fixed"><div class="header-nav-inner"><div class="header-nav-menubtn"><i class="fas fa-bars"></i></div><div class="header-nav-menu"><div class="header-nav-menu-item"><a class="header-nav-menu-item__link" href="/"><span class="header-nav-menu-item__icon"><i class="fas fa-home"></i></span><span class="header-nav-menu-item__text">首页</span></a></div><div class="header-nav-menu-item"><a class="header-nav-menu-item__link" href="/archives/"><span class="header-nav-menu-item__icon"><i class="fas fa-folder-open"></i></span><span class="header-nav-menu-item__text">归档</span></a></div><div class="header-nav-menu-item"><a class="header-nav-menu-item__link" href="/categories/"><span class="header-nav-menu-item__icon"><i class="fas fa-layer-group"></i></span><span class="header-nav-menu-item__text">分类</span></a></div><div class="header-nav-menu-item"><a class="header-nav-menu-item__link" href="/tags/"><span class="header-nav-menu-item__icon"><i class="fas fa-tags"></i></span><span class="header-nav-menu-item__text">标签</span></a></div></div><div class="header-nav-mode"><div class="mode"><div class="mode-track"><span class="mode-track-moon"></span><span class="mode-track-sun"></span></div><div class="mode-thumb"></div></div></div></div></nav><div class="header-banner"><div class="header-banner-info"><div class="header-banner-info__title">DemoOrBug</div><div class="header-banner-info__subtitle">懒惰、急躁、傲慢 ———— 当代程序员美德</div></div><div class="header-banner-arrow"><div class="header-banner-arrow__icon"><i class="fas fa-angle-down"></i></div></div></div></div></header><main class="main" id="main"><div class="main-inner"><div class="content-wrap" id="content-wrap"><div class="content" id="content"><!-- Just used to judge whether it is an article page--><div id="is-post"></div><div class="post"><header class="post-header"><h1 class="post-title">Class加载过程</h1><div class="post-meta"><span class="post-meta-item post-meta-item--createtime"><span class="post-meta-item__icon"><i class="far fa-calendar-plus"></i></span><span class="post-meta-item__info">发表于</span><span class="post-meta-item__value">2020-09-22</span></span><span class="post-meta-item post-meta-item--updatetime"><span class="post-meta-item__icon"><i class="far fa-calendar-check"></i></span><span class="post-meta-item__info">更新于</span><span class="post-meta-item__value">2020-09-22</span></span><span class="post-meta-item post-meta-item--wordcount"><span class="post-meta-item__icon"><i class="far fa-file-word"></i></span><span class="post-meta-item__info">字数统计</span><span class="post-meta-item__value">1.9k</span></span><span class="post-meta-item post-meta-item--readtime"><span class="post-meta-item__icon"><i class="far fa-clock"></i></span><span class="post-meta-item__info">阅读时长</span><span class="post-meta-item__value">13分</span></span><span class="post-meta-item post-meta-item--visitors"><span class="post-meta-item__icon"><i class="fas fa-eye"></i></span><span class="post-meta-item__info">阅读次数</span><span class="post-meta-item__value" id="busuanzi_value_page_pv"></span></span></div></header><div class="post-body">
+        <h1 id="class加载过程"   >
+          <a href="#class加载过程" class="heading-link"><i class="fas fa-link"></i></a>class加载过程</h1>
+      <p>有一个class文件在硬盘，需要怎样的过程才能加载到内存中？</p>
+<ol>
+<li>Loading</li>
+<li>Linking</li>
+<li>Initializing</li>
+</ol>
+<a id="more"></a>
+
+<hr>
+<ol>
+<li>Loading是把class文件装载到内存中</li>
+<li>Linking分为三步<ol>
+<li>Verification 验证文件是否符合JVM规定</li>
+<li>Preparation  静态成员变量赋<strong>默认值</strong></li>
+<li>Resolution  将类、方法、属性等符号引用解析为直接引用；常量池中的各种符号引用解析为指针、偏移量等内存地址的直接引用</li>
+</ol>
+</li>
+<li>Initializing 调用类初始化代码 <clinit>，给静态成员变量赋初始值</li>
+</ol>
+<p>
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="https://pic.downk.cc/item/5f698927160a154a671e4aed.png"  alt="2f421b5c7a9aeb1f217a248523422f57.png">
+      </p>
+
+        <h2 id="Loading"   >
+          <a href="#Loading" class="heading-link"><i class="fas fa-link"></i></a>Loading</h2>
+      <p>
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="https://pic.downk.cc/item/5f698927160a154a671e4acc.png"  alt="b05863bf80d05571f5e4fe0fba85b3c9.png">
+      </p>
+<p>不同的加载器负责加载不同的class</p>
+<ol>
+<li>BootStrap 加载lib里jdk最核心的内容，比如rt.jar charset.jar。当调用getClassLoader()为null的时候，代表到达了最顶层的加载器</li>
+<li>Extension 加载器拓展类，加载jre/lib/ext目录下拓展包的内容</li>
+<li>Application 加载classpath指定内容</li>
+<li>自定义加载器ClassLoader（Custom ClassLoader），加载自定义的加载器</li>
+</ol>
+<p><u><strong>注意：父加载器不是“类加载器的加载器”，也不是“类加载器的父类加载器”</strong></u></p>
+
+        <h3 id="双亲委派"   >
+          <a href="#双亲委派" class="heading-link"><i class="fas fa-link"></i></a>双亲委派</h3>
+      <p>一个class文件需要被load内存时候是这样的<br>任何一个class，假如自定义了ClassLoader，就先尝试去自定义的内部缓存里面找，如果加载进来就返回，不需要加载第二遍。如果没找到，也并不是直接去加载，而是去他的父亲application父加载器，说爸爸你有没有把这个类加载进来，这时候application就会去他的缓存里面找有没有这个类，如果有返回，如果没有委托给他的父亲 Extension，如果有返回，如果没有委托给他的父亲 Bootstrap有就返回，如果都没有就往回再委托。说Extension我这没有你去加载， Extension说我只负责我扩展jar包部分，你的类我找不到，application去加载，application说我只负责加载classpath指定内容，其他的找不到，然后委托ClassLoader去找，整个过程是转了一圈，才真正把这个类加载进来，当我们能够把这个类加载进来的时候成功返回，如果加载不进来，抛ClassNotfound异常。这就叫做双亲委派。</p>
+
+        <h4 id="为什么要使用双亲委派？"   >
+          <a href="#为什么要使用双亲委派？" class="heading-link"><i class="fas fa-link"></i></a>为什么要使用双亲委派？</h4>
+      <ol>
+<li>安全问题</li>
+<li>减少资源浪费，加载过得不需要再加载一遍</li>
+</ol>
+<p>解释：<br>如果任何一个class都可以load进内存，那我可以自定义一个java.lang.String交给自定义的类加载器加载到内存，打包给客户，然后客户只要使用String存储敏感信息，都可以暗中发送给我。因为自定义的，想干什么都可以，不安全。<br>使用双亲委派就可以避免这个问题，当自定义加载器加载java.lang.String的时候，会向上面查又没有加载过，加载过直接返回，不会再次加载。</p>
+
+        <h4 id="打破双亲委派机制"   >
+          <a href="#打破双亲委派机制" class="heading-link"><i class="fas fa-link"></i></a>打破双亲委派机制</h4>
+      <ol>
+<li>重写loadClass（）方法</li>
+<li>何时打破过？<ol>
+<li>JDK1.2之前，自定义ClassLoader都必须重写loadClass()</li>
+<li>ThreadContextClassLoader可以实现基础类调用实现类代码，通过thread.setContextClassLoader指定</li>
+<li>热启动，热部署<ul>
+<li>osgi tomcat 都有自己的模块指定classloader（可以加载同一类库的不同版本）</li>
+</ul>
+</li>
+</ol>
+</li>
+</ol>
+
+        <h3 id="自定义类加载器"   >
+          <a href="#自定义类加载器" class="heading-link"><i class="fas fa-link"></i></a>自定义类加载器</h3>
+      <ol>
+<li>继承ClassLoader</li>
+<li>重写模板方法findClass<ul>
+<li>调用defindClass （将二进制流转换为class对象并返回）</li>
+</ul>
+</li>
+<li>自定义类加载器加载自加密的class（可有可无）<ul>
+<li>防止反编译 防止篡改</li>
+</ul>
+</li>
+</ol>
+
+        <h3 id="Classloader源码解析"   >
+          <a href="#Classloader源码解析" class="heading-link"><i class="fas fa-link"></i></a>Classloader源码解析</h3>
+      <p>
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="https://pic.downk.cc/item/5f698927160a154a671e4ad9.png"  alt="dde4c5b14067b17e281dd1fa322c37a7.png">
+      </p>
+<ul>
+<li>每一个ClassLoader内部的parent都是一个final值，无法改变。</li>
+<li>findclass的权限是protected受保护的，只能在子类中访问</li>
+<li>
+        <h3 id="如何加载一个类"   >
+          <a href="#如何加载一个类" class="heading-link"><i class="fas fa-link"></i></a>如何加载一个类</h3>
+      </li>
+</ul>
+<figure class="highlight java"><div class="table-container"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">T005_LoadClassByHand</span> </span>&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> ClassNotFoundException </span>&#123;</span><br><span class="line">		<span class="comment">//首先拿到app这个类加载器，之后调用他的loadClass方法，只需要把类的全名传进去，就可以加载到内存</span></span><br><span class="line">        Class clazz = T005_LoadClassByHand.class.getClassLoader().loadClass(<span class="string">&quot;com.learn.jvm.c2_classloader.T002_ClassLoaderLevel&quot;</span>);</span><br><span class="line">        System.out.println(clazz.getName());</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></div></figure>
+<ul>
+<li>要加载一个类，只需要调用classLoad的loadclass()方法，加载到内存后会返回一个class对象</li>
+</ul>
+
+        <h3 id="自定义类加载器代码实现"   >
+          <a href="#自定义类加载器代码实现" class="heading-link"><i class="fas fa-link"></i></a>自定义类加载器代码实现</h3>
+      <p>自定义ClassLoader只需要重写findClass，使用了<strong>模板方法</strong>的设计模式</p>
+<figure class="highlight java"><div class="table-container"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> com.mashibing.jvm.c2_classloader;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> com.mashibing.jvm.Hello;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> java.io.ByteArrayOutputStream;</span><br><span class="line"><span class="keyword">import</span> java.io.File;</span><br><span class="line"><span class="keyword">import</span> java.io.FileInputStream;</span><br><span class="line"><span class="comment">//继承ClassLoader</span></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">T006_MSBClassLoader</span> <span class="keyword">extends</span> <span class="title">ClassLoader</span> </span>&#123;</span><br><span class="line">	<span class="comment">//重写findClass方法，然后找到要load进来的二进制内容，load之后再转换为对象</span></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">protected</span> Class&lt;?&gt; findClass(String name) <span class="keyword">throws</span> ClassNotFoundException &#123;</span><br><span class="line">        File f = <span class="keyword">new</span> File(<span class="string">&quot;c:/test/&quot;</span>, name.replace(<span class="string">&quot;.&quot;</span>, <span class="string">&quot;/&quot;</span>).concat(<span class="string">&quot;.class&quot;</span>));</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            FileInputStream fis = <span class="keyword">new</span> FileInputStream(f);</span><br><span class="line">            ByteArrayOutputStream baos = <span class="keyword">new</span> ByteArrayOutputStream();</span><br><span class="line">            <span class="keyword">int</span> b = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">while</span> ((b=fis.read()) !=<span class="number">0</span>) &#123;</span><br><span class="line">                baos.write(b);</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">byte</span>[] bytes = baos.toByteArray();</span><br><span class="line">            baos.close();</span><br><span class="line">            fis.close();<span class="comment">//可以写的更加严谨</span></span><br><span class="line">			<span class="comment">//defineClass方法将二进制流转换为class对象</span></span><br><span class="line">            <span class="keyword">return</span> defineClass(name, bytes, <span class="number">0</span>, bytes.length);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">            e.printStackTrace();</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">super</span>.findClass(name); <span class="comment">//throws ClassNotFoundException</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">        ClassLoader l = <span class="keyword">new</span> T006_MSBClassLoader();</span><br><span class="line">        Class clazz = l.loadClass(<span class="string">&quot;com.mashibing.jvm.Hello&quot;</span>);</span><br><span class="line">        Class clazz1 = l.loadClass(<span class="string">&quot;com.mashibing.jvm.Hello&quot;</span>);</span><br><span class="line"></span><br><span class="line">        System.out.println(clazz == clazz1);<span class="comment">//true</span></span><br><span class="line"></span><br><span class="line">        Hello h = (Hello)clazz.newInstance();</span><br><span class="line">        h.m();</span><br><span class="line"></span><br><span class="line">        System.out.println(l.getClass().getClassLoader());<span class="comment">//AppClassLoader</span></span><br><span class="line">        System.out.println(l.getParent());<span class="comment">//AppClassLoader</span></span><br><span class="line"></span><br><span class="line">        System.out.println(getSystemClassLoader());</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></div></figure>
+<p>简单加密的</p>
+<figure class="highlight java"><div class="table-container"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">package</span> com.mashibing.jvm.c2_classloader;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> com.mashibing.jvm.Hello;</span><br><span class="line"></span><br><span class="line"><span class="keyword">import</span> java.io.ByteArrayOutputStream;</span><br><span class="line"><span class="keyword">import</span> java.io.File;</span><br><span class="line"><span class="keyword">import</span> java.io.FileInputStream;</span><br><span class="line"><span class="keyword">import</span> java.io.FileOutputStream;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">T007_MSBClassLoaderWithEncription</span> <span class="keyword">extends</span> <span class="title">ClassLoader</span> </span>&#123;</span><br><span class="line">	<span class="comment">//异或种子值</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">int</span> seed = <span class="number">0B10110110</span>;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">protected</span> Class&lt;?&gt; findClass(String name) <span class="keyword">throws</span> ClassNotFoundException &#123;</span><br><span class="line">        File f = <span class="keyword">new</span> File(<span class="string">&quot;c:/test/&quot;</span>, name.replace(<span class="string">&#x27;.&#x27;</span>, <span class="string">&#x27;/&#x27;</span>).concat(<span class="string">&quot;.msbclass&quot;</span>));</span><br><span class="line"></span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            FileInputStream fis = <span class="keyword">new</span> FileInputStream(f);</span><br><span class="line">            ByteArrayOutputStream baos = <span class="keyword">new</span> ByteArrayOutputStream();</span><br><span class="line">            <span class="keyword">int</span> b = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">while</span> ((b=fis.read()) !=<span class="number">0</span>) &#123;</span><br><span class="line">                baos.write(b ^ seed);<span class="comment">//异或解密</span></span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">byte</span>[] bytes = baos.toByteArray();</span><br><span class="line">            baos.close();</span><br><span class="line">            fis.close();<span class="comment">//可以写的更加严谨</span></span><br><span class="line"></span><br><span class="line">            <span class="keyword">return</span> defineClass(name, bytes, <span class="number">0</span>, bytes.length);</span><br><span class="line">        &#125; <span class="keyword">catch</span> (Exception e) &#123;</span><br><span class="line">            e.printStackTrace();</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">super</span>.findClass(name); <span class="comment">//throws ClassNotFoundException</span></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">main</span><span class="params">(String[] args)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line"></span><br><span class="line">        encFile(<span class="string">&quot;com.mashibing.jvm.hello&quot;</span>);</span><br><span class="line"></span><br><span class="line">        ClassLoader l = <span class="keyword">new</span> T007_MSBClassLoaderWithEncription();</span><br><span class="line">        Class clazz = l.loadClass(<span class="string">&quot;com.mashibing.jvm.Hello&quot;</span>);</span><br><span class="line">        Hello h = (Hello)clazz.newInstance();</span><br><span class="line">        h.m();</span><br><span class="line"></span><br><span class="line">        System.out.println(l.getClass().getClassLoader());</span><br><span class="line">        System.out.println(l.getParent());</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">//简单加密方法，一般class就是一个二进制流，采用异或方式加密（再异或一次就是原值，两次异或值不变）</span></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">encFile</span><span class="params">(String name)</span> <span class="keyword">throws</span> Exception </span>&#123;</span><br><span class="line">        File f = <span class="keyword">new</span> File(<span class="string">&quot;c:/test/&quot;</span>, name.replace(<span class="string">&#x27;.&#x27;</span>, <span class="string">&#x27;/&#x27;</span>).concat(<span class="string">&quot;.class&quot;</span>));</span><br><span class="line">        FileInputStream fis = <span class="keyword">new</span> FileInputStream(f);</span><br><span class="line">        FileOutputStream fos = <span class="keyword">new</span> FileOutputStream(<span class="keyword">new</span> File(<span class="string">&quot;c:/test/&quot;</span>, name.replaceAll(<span class="string">&quot;.&quot;</span>, <span class="string">&quot;/&quot;</span>).concat(<span class="string">&quot;.msbclass&quot;</span>)));</span><br><span class="line">        <span class="keyword">int</span> b = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">while</span>((b = fis.read()) != -<span class="number">1</span>) &#123;</span><br><span class="line">            fos.write(b ^ seed);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        fis.close();</span><br><span class="line">        fos.close();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></div></figure>
+
+        <h3 id="lazyloading-懒加载-懒初始化"   >
+          <a href="#lazyloading-懒加载-懒初始化" class="heading-link"><i class="fas fa-link"></i></a>lazyloading 懒加载 懒初始化</h3>
+      <p>jvm虚拟机的实现都是使用了懒加载，什么时候用什么时候加载。</p>
+<p><strong>注意：jvm规范没有规定何时加载，但是以下五种情况必须初始化</strong></p>
+<ol>
+<li>–new getstatic putstatic invokestatic指令，访问final变量除外</li>
+<li>java.lang.reflect对类进行反射调用时</li>
+<li>初始化子类的时候，父类首先初始化</li>
+<li>虚拟机启动时，被执行的主类必须初始化</li>
+<li>动态语言支持java.lang.invoke.MethodHandle解析的结果为REF_getstatic REF_putstatic REF_invokestatic的方法句柄时，该类必须初始化</li>
+</ol>
+
+        <h2 id="java执行模式"   >
+          <a href="#java执行模式" class="heading-link"><i class="fas fa-link"></i></a>java执行模式</h2>
+      <p>默认是混合模式，可修改配置为纯解释模式或者纯编译模式</p>
+<p>
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="https://pic.downk.cc/item/5f698927160a154a671e4adc.png"  alt="bb52a64035ef08c3b1931ff23e504414.png">
+      </p>
+<p>
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="https://pic.downk.cc/item/5f698927160a154a671e4ae4.png"  alt="346cb0ae6b06099ae8105b078335ced2.png">
+      </p>
+
+        <h2 id="Linking"   >
+          <a href="#Linking" class="heading-link"><i class="fas fa-link"></i></a>Linking</h2>
+      <ol>
+<li>Verification<ol>
+<li>验证文件是否符合JVM规定</li>
+</ol>
+</li>
+<li>Preparation<ol>
+<li>静态成员变量赋默认值（0，null ）</li>
+</ol>
+</li>
+<li>Resolution<ul>
+<li>将类、方法、属性等符号引用解析为直接引用；常量池中的各种符号引用解析为指针、偏移量等内存地址的直接引用</li>
+</ul>
+</li>
+</ol>
+
+        <h2 id="Initializing"   >
+          <a href="#Initializing" class="heading-link"><i class="fas fa-link"></i></a>Initializing</h2>
+      <ul>
+<li>调用类初始化代码 <clinit>，给静态成员变量赋初始值</li>
+</ul>
+
+        <h2 id="注意"   >
+          <a href="#注意" class="heading-link"><i class="fas fa-link"></i></a>注意</h2>
+      <ol>
+<li>load - 默认值 - 初始值</li>
+<li>new - 申请内存 - 默认值 - 初始值</li>
+</ol>
+</div><footer class="post-footer"><div class="post-ending ending"><div class="ending__text">------ 本文结束，感谢您的阅读 ------</div></div><div class="post-copyright copyright"><div class="copyright-author"><span class="copyright-author__name">本文作者: </span><span class="copyright-author__value"><a href="https://bugordemo.github.io">hyf</a></span></div><div class="copyright-link"><span class="copyright-link__name">本文链接: </span><span class="copyright-link__value"><a href="https://bugordemo.github.io/2020/09/22/Class%E5%8A%A0%E8%BD%BD%E8%BF%87%E7%A8%8B/">https://bugordemo.github.io/2020/09/22/Class%E5%8A%A0%E8%BD%BD%E8%BF%87%E7%A8%8B/</a></span></div><div class="copyright-notice"><span class="copyright-notice__name">版权声明: </span><span class="copyright-notice__value">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" rel="external nofollow" target="_blank">BY-NC-SA</a> 许可协议。转载请注明出处！</span></div></div><div class="post-tags"><span class="post-tags-item"><span class="post-tags-item__icon"><i class="fas fa-tag"></i></span><a class="post-tags-item__link" href="https://bugordemo.github.io/tags/JVM/">JVM</a></span></div><div class="post-reward reward"><div class="reward-button">请我喝杯咖啡~</div><div class="reward-qrcode"><span class="reward-qrcode-alipay"><img class="reward-qrcode-alipay__img" src="/assets/alipay.jpg"><div class="reward-qrcode-alipay__text">支付宝打赏</div></span><span class="reward-qrcode-wechat"><img class="reward-qrcode-wechat__img" src="/assets/wechat.jpg"><div class="reward-qrcode-wechat__text">微信打赏</div></span></div></div><nav class="post-paginator paginator"><div class="paginator-prev"><a class="paginator-prev__link" href="/2020/09/22/JMM/"><span class="paginator-prev__icon"><i class="fas fa-angle-left"></i></span><span class="paginator-prev__text">JMM</span></a></div><div class="paginator-next"><a class="paginator-next__link" href="/2020/09/22/Class%E6%96%87%E4%BB%B6%E7%AE%80%E4%BB%8B/"><span class="paginator-prev__text">Class文件简介</span><span class="paginator-next__icon"><i class="fas fa-angle-right"></i></span></a></div></nav></footer></div></div></div><div class="sidebar-wrap" id="sidebar-wrap"><aside class="sidebar" id="sidebar"><div class="sidebar-nav"><span class="sidebar-nav-toc current">文章目录</span><span class="sidebar-nav-ov">站点概览</span></div><section class="sidebar-toc"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#Loading"><span class="toc-number">1.</span> <span class="toc-text">
+          Loading</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%8F%8C%E4%BA%B2%E5%A7%94%E6%B4%BE"><span class="toc-number">1.1.</span> <span class="toc-text">
+          双亲委派</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88%E8%A6%81%E4%BD%BF%E7%94%A8%E5%8F%8C%E4%BA%B2%E5%A7%94%E6%B4%BE%EF%BC%9F"><span class="toc-number">1.1.1.</span> <span class="toc-text">
+          为什么要使用双亲委派？</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%89%93%E7%A0%B4%E5%8F%8C%E4%BA%B2%E5%A7%94%E6%B4%BE%E6%9C%BA%E5%88%B6"><span class="toc-number">1.1.2.</span> <span class="toc-text">
+          打破双亲委派机制</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%87%AA%E5%AE%9A%E4%B9%89%E7%B1%BB%E5%8A%A0%E8%BD%BD%E5%99%A8"><span class="toc-number">1.2.</span> <span class="toc-text">
+          自定义类加载器</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Classloader%E6%BA%90%E7%A0%81%E8%A7%A3%E6%9E%90"><span class="toc-number">1.3.</span> <span class="toc-text">
+          Classloader源码解析</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%A6%82%E4%BD%95%E5%8A%A0%E8%BD%BD%E4%B8%80%E4%B8%AA%E7%B1%BB"><span class="toc-number">1.4.</span> <span class="toc-text">
+          如何加载一个类</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%87%AA%E5%AE%9A%E4%B9%89%E7%B1%BB%E5%8A%A0%E8%BD%BD%E5%99%A8%E4%BB%A3%E7%A0%81%E5%AE%9E%E7%8E%B0"><span class="toc-number">1.5.</span> <span class="toc-text">
+          自定义类加载器代码实现</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#lazyloading-%E6%87%92%E5%8A%A0%E8%BD%BD-%E6%87%92%E5%88%9D%E5%A7%8B%E5%8C%96"><span class="toc-number">1.6.</span> <span class="toc-text">
+          lazyloading 懒加载 懒初始化</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#java%E6%89%A7%E8%A1%8C%E6%A8%A1%E5%BC%8F"><span class="toc-number">2.</span> <span class="toc-text">
+          java执行模式</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Linking"><span class="toc-number">3.</span> <span class="toc-text">
+          Linking</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Initializing"><span class="toc-number">4.</span> <span class="toc-text">
+          Initializing</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%B3%A8%E6%84%8F"><span class="toc-number">5.</span> <span class="toc-text">
+          注意</span></a></li></ol></section><!-- ov = overview--><section class="sidebar-ov hide"><div class="sidebar-ov-author"><div class="sidebar-ov-author__avatar"><img class="sidebar-ov-author__avatar_img" src="https://wx2.sbimg.cn/2020/09/22/GJ1jY.md.jpg" alt="avatar"></div><p class="sidebar-ov-author__text">write code and love life</p></div><div class="sidebar-ov-social"><a class="sidebar-ov-social-item" href="https://github.com/bugORdemo" target="_blank" rel="noopener" data-popover="Github" data-popover-pos="up"><span class="sidebar-ov-social-item__icon"><i class="fab fa-github"></i></span></a><a class="sidebar-ov-social-item" href="NullPointerEXC-H" target="_blank" rel="noopener" data-popover="微信" data-popover-pos="up"><span class="sidebar-ov-social-item__icon"><i class="fab fa-weixin"></i></span></a><a class="sidebar-ov-social-item" href="798968439" target="_blank" rel="noopener" data-popover="QQ" data-popover-pos="up"><span class="sidebar-ov-social-item__icon"><i class="fab fa-qq"></i></span></a></div><div class="sidebar-ov-state"><a class="sidebar-ov-state-item sidebar-ov-state-item--posts" href="/archives/"><div class="sidebar-ov-state-item__count">7</div><div class="sidebar-ov-state-item__name">归档</div></a><a class="sidebar-ov-state-item sidebar-ov-state-item--categories" href="/categories/"><div class="sidebar-ov-state-item__count">2</div><div class="sidebar-ov-state-item__name">分类</div></a><a class="sidebar-ov-state-item sidebar-ov-state-item--tags" href="/tags/"><div class="sidebar-ov-state-item__count">3</div><div class="sidebar-ov-state-item__name">标签</div></a></div><div class="sidebar-ov-cc"><a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank" rel="noopener" data-popover="知识共享许可协议" data-popover-pos="up"><img src="/images/cc-by-nc-sa.svg"></a></div></section><div class="sidebar-reading"><div class="sidebar-reading-info"><span class="sidebar-reading-info__text">你已阅读了 </span><span class="sidebar-reading-info__num">0</span></div><div class="sidebar-reading-line"></div></div></aside></div><div class="clearfix"></div></div></main><footer class="footer" id="footer"><div class="footer-inner"><div><span>Copyright © 2020</span><span class="footer__icon"><i class="fas fa-heart"></i></span><span><a href="https://github.com/bugORdemo" rel="noopener" target="_blank">bugORdemo</a></span></div><div><span>由 <a href="http://hexo.io/" title="Hexo" target="_blank" rel="noopener">Hexo</a> 强力驱动</span><span> v5.2.0</span><span class="footer__devider">|</span><span>主题 - <a href="https://github.com/liuyib/hexo-theme-stun/" title="Stun" target="_blank" rel="noopener">Stun</a></span><span> v2.1.1</span></div><div class="busuanzi"><span class="busuanzi-siteuv"><span class="busuanzi-siteuv__icon"><i class="fas fa-user"></i></span><span class="busuanzi-siteuv__info">访问人数</span><span class="busuanzi-siteuv__value" id="busuanzi_value_site_uv"></span></span><span class="busuanzi-sitepv"><span class="busuanzi-siteuv__icon"><i class="fas fa-eye"></i></span><span class="busuanzi-siteuv__info">浏览总量</span><span class="busuanzi-siteuv__value" id="busuanzi_value_site_pv"></span></span></div></div></footer><div class="loading-bar" id="loading-bar"><div class="loading-bar__progress"></div></div><div class="back2top" id="back2top"><span class="back2top__icon"><i class="fas fa-rocket"></i></span></div></div><script src="https://cdn.jsdelivr.net/npm/jquery@v3.4.1/dist/jquery.min.js"></script><script src="https://cdn.jsdelivr.net/npm/velocity-animate@1.5.2/velocity.min.js"></script><script src="https://cdn.jsdelivr.net/npm/velocity-animate@1.5.2/velocity.ui.min.js"></script><script src="https://cdn.jsdelivr.net/npm/ribbon.js@latest/dist/ribbon.min.js" size="120" alpha="0.6" zIndex="-1"></script><script src="https://cdn.jsdelivr.net/gh/fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.js"></script><script src="https://cdn.jsdelivr.net/npm/masonry-layout@4.2.2/dist/masonry.pkgd.min.js"></script><script src="https://cdn.jsdelivr.net/npm/lazyload@2.0.0-rc.2/lazyload.min.js"></script><script src="https://cdn.jsdelivr.net/npm/pjax@latest/pjax.min.js"></script><script>window.addEventListener('DOMContentLoaded', function () {
+  var pjax = new Pjax({"selectors":["head title","#main",".pjax-reload"],"history":true,"scrollTo":false,"scrollRestoration":false,"cacheBust":false,"debug":false,"currentUrlFullReload":false,"timeout":0});
+  // 加载进度条的计时器
+  var loadingTimer = null;
+
+  // 重置页面 Y 方向上的滚动偏移量
+  document.addEventListener('pjax:send', function () {
+    $('.header-nav-menu').removeClass('show');
+    if (CONFIG.pjax && CONFIG.pjax.avoidBanner) {
+      $('html').velocity('scroll', {
+        duration: 500,
+        offset: $('#header').height(),
+        easing: 'easeInOutCubic'
+      });
+    }
+
+    var loadingBarWidth = 20;
+    var MAX_LOADING_WIDTH = 95;
+
+    $('.loading-bar').addClass('loading');
+    $('.loading-bar__progress').css('width', loadingBarWidth + '%');
+    clearInterval(loadingTimer);
+    loadingTimer = setInterval(function () {
+      loadingBarWidth += 3;
+      if (loadingBarWidth > MAX_LOADING_WIDTH) {
+        loadingBarWidth = MAX_LOADING_WIDTH;
+      }
+      $('.loading-bar__progress').css('width', loadingBarWidth + '%');
+    }, 500);
+  }, false);
+
+  window.addEventListener('pjax:complete', function () {
+    clearInterval(loadingTimer);
+    $('.loading-bar__progress').css('width', '100%');
+    $('.loading-bar').removeClass('loading');
+    setTimeout(function () {
+      $('.loading-bar__progress').css('width', '0');
+    }, 400);
+    $('link[rel=prefetch], script[data-pjax-rm]').each(function () {
+      $(this).remove();
+    });
+    $('script[data-pjax], #pjax-reload script').each(function () {
+      $(this).parent().append($(this).remove());
+    });
+
+    if (Stun.utils.pjaxReloadBoot) {
+      Stun.utils.pjaxReloadBoot();
+    }
+    if (Stun.utils.pjaxReloadScroll) {
+      Stun.utils.pjaxReloadScroll();
+    }
+    if (Stun.utils.pjaxReloadSidebar) {
+      Stun.utils.pjaxReloadSidebar();
+    }
+    if (false) {
+      if (Stun.utils.pjaxReloadHeader) {
+        Stun.utils.pjaxReloadHeader();
+      }
+      if (Stun.utils.pjaxReloadScrollIcon) {
+        Stun.utils.pjaxReloadScrollIcon();
+      }
+      if (Stun.utils.pjaxReloadLocalSearch) {
+        Stun.utils.pjaxReloadLocalSearch();
+      }
+    }
+  }, false);
+}, false);</script><div id="pjax-reload"><script src="https://cdn.jsdelivr.net/npm/quicklink@1.0.1/dist/quicklink.umd.js"></script><script>function initQuicklink() {
+  quicklink({
+    timeout: '10000',
+    priority: true,
+    ignores: [uri => uri.includes('#'), uri => uri === 'https://bugordemo.github.io/2020/09/22/Class%E5%8A%A0%E8%BD%BD%E8%BF%87%E7%A8%8B/', /\/api\/?/,uri => uri.includes('.xml'),uri => uri.includes('.zip'),(uri, el) => el.hasAttribute('nofollow'),(uri, el) => el.hasAttribute('noprefetch')]
+  });
+}
+
+if (true || false) {
+  initQuicklink();
+} else {
+  window.addEventListener('DOMContentLoaded', initQuicklink, false);
+}</script><script src="https://cdn.jsdelivr.net/gh/sukkaw/busuanzi@latest/bsz.pure.mini.js" async></script></div><script src="/js/utils.js?v=2.1.1"></script><script src="/js/stun-boot.js?v=2.1.1"></script><script src="/js/scroll.js?v=2.1.1"></script><script src="/js/header.js?v=2.1.1"></script><script src="/js/sidebar.js?v=2.1.1"></script></body></html>
