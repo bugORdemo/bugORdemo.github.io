@@ -1,0 +1,333 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="format-detection" content="telephone=no"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black"><link rel="icon" href="/assets/bilibili.jpg?v=2.1.1" type="image/png" sizes="32x32"><meta name="description" content="redis的消息订阅、pipeline、事务、modules、布隆过滤器、缓存LRU                           消息订阅       Publish 命令用于将信息发送到指定的频道 Subscribe 命令用于订阅给定的一个或多个频道的信息  只有订阅后才能收到Publish的消息，之前的消息收不到">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Redis的消息订阅、pipeline、事务、modules、布隆过滤器、缓存LRU">
+<meta property="og:url" content="https://bugordemo.github.io/2020/09/23/Redis%E7%9A%84%E6%B6%88%E6%81%AF%E8%AE%A2%E9%98%85%E3%80%81pipeline%E3%80%81%E4%BA%8B%E5%8A%A1%E3%80%81modules%E3%80%81%E5%B8%83%E9%9A%86%E8%BF%87%E6%BB%A4%E5%99%A8%E3%80%81%E7%BC%93%E5%AD%98LRU/index.html">
+<meta property="og:site_name" content="DemoOrBug">
+<meta property="og:description" content="redis的消息订阅、pipeline、事务、modules、布隆过滤器、缓存LRU                           消息订阅       Publish 命令用于将信息发送到指定的频道 Subscribe 命令用于订阅给定的一个或多个频道的信息  只有订阅后才能收到Publish的消息，之前的消息收不到">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://pic.downk.cc/item/5f6a8f82160a154a678e6ebf.png">
+<meta property="og:image" content="https://pic.downk.cc/item/5f6a8f82160a154a678e6eb2.png">
+<meta property="og:image" content="https://pic.downk.cc/item/5f6a8f82160a154a678e6eb4.png">
+<meta property="og:image" content="https://pic.downk.cc/item/5f6a8f82160a154a678e6eb8.png">
+<meta property="og:image" content="https://pic.downk.cc/item/5f6a8fac160a154a678e7c53.png">
+<meta property="og:image" content="https://pic.downk.cc/item/5f6a8fab160a154a678e7c3a.png">
+<meta property="og:image" content="https://pic.downk.cc/item/5f6a8fab160a154a678e7c3c.png">
+<meta property="og:image" content="https://pic.downk.cc/item/5f6a8fab160a154a678e7c40.png">
+<meta property="og:image" content="https://pic.downk.cc/item/5f6a8fab160a154a678e7c49.png">
+<meta property="og:image" content="https://pic.downk.cc/item/5f6a9002160a154a678eb149.png">
+<meta property="og:image" content="https://pic.downk.cc/item/5f6a9002160a154a678eb147.png">
+<meta property="article:published_time" content="2020-09-22T23:57:20.000Z">
+<meta property="article:modified_time" content="2020-09-23T00:00:44.590Z">
+<meta property="article:author" content="hyf">
+<meta property="article:tag" content="Redis">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://pic.downk.cc/item/5f6a8f82160a154a678e6ebf.png"><title>Redis的消息订阅、pipeline、事务、modules、布隆过滤器、缓存LRU | DemoOrBug</title><link ref="canonical" href="https://bugordemo.github.io/2020/09/23/Redis%E7%9A%84%E6%B6%88%E6%81%AF%E8%AE%A2%E9%98%85%E3%80%81pipeline%E3%80%81%E4%BA%8B%E5%8A%A1%E3%80%81modules%E3%80%81%E5%B8%83%E9%9A%86%E8%BF%87%E6%BB%A4%E5%99%A8%E3%80%81%E7%BC%93%E5%AD%98LRU/"><link rel="dns-prefetch" href="https://cdn.jsdelivr.net"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.12.1/css/all.min.css" type="text/css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.css" type="text/css"><link rel="stylesheet" href="/css/index.css?v=2.1.1"><script>var Stun = window.Stun || {};
+var CONFIG = {
+  root: '/',
+  algolia: undefined,
+  fontIcon: {"prompt":{"success":"fas fa-check-circle","info":"fas fa-arrow-circle-right","warning":"fas fa-exclamation-circle","error":"fas fa-times-circle"},"copyBtn":"fas fa-copy"},
+  sidebar: {"offsetTop":"20px","tocMaxDepth":5},
+  header: {"enable":true,"showOnPost":true,"scrollDownIcon":true},
+  postWidget: {"endText":true},
+  nightMode: {"enable":true},
+  back2top: {"enable":true},
+  codeblock: {"style":"carbon","highlight":"light","wordWrap":false},
+  reward: true,
+  fancybox: true,
+  zoomImage: {"gapAside":"20px"},
+  galleryWaterfall: {"colWidth":"220px","gapX":"10px"},
+  lazyload: true,
+  pjax: {"avoidBanner":true},
+  externalLink: {"icon":{"enable":true,"name":"fas fa-external-link-alt"}},
+  shortcuts: {"switchPost":true},
+  prompt: {"copyButton":"复制","copySuccess":"复制成功","copyError":"复制失败"},
+  sourcePath: {"js":"js","css":"css","images":"images"},
+};
+
+window.CONFIG = CONFIG;</script><meta name="generator" content="Hexo 5.2.0"></head><body><div class="container" id="container"><header class="header" id="header"><div class="header-inner"><nav class="header-nav header-nav--fixed"><div class="header-nav-inner"><div class="header-nav-menubtn"><i class="fas fa-bars"></i></div><div class="header-nav-menu"><div class="header-nav-menu-item"><a class="header-nav-menu-item__link" href="/"><span class="header-nav-menu-item__icon"><i class="fas fa-home"></i></span><span class="header-nav-menu-item__text">首页</span></a></div><div class="header-nav-menu-item"><a class="header-nav-menu-item__link" href="javascript:;" onclick="return false;"><span class="header-nav-menu-item__icon"><i class="fas fa-folder-open"></i></span><span class="header-nav-menu-item__text">文章</span></a><div class="header-nav-submenu"><div class="header-nav-submenu-item"><a class="header-nav-submenu-item__link" href="/archives/"><span class="header-nav-submenu-item__icon"><i class="fas fa-folder-open"></i></span><span class="header-nav-submenu-item__text">归档</span></a></div><div class="header-nav-submenu-item"><a class="header-nav-submenu-item__link" href="/categories/"><span class="header-nav-submenu-item__icon"><i class="fas fa-layer-group"></i></span><span class="header-nav-submenu-item__text">分类</span></a></div><div class="header-nav-submenu-item"><a class="header-nav-submenu-item__link" href="/tags/"><span class="header-nav-submenu-item__icon"><i class="fas fa-tags"></i></span><span class="header-nav-submenu-item__text">标签</span></a></div></div></div></div><div class="header-nav-mode"><div class="mode"><div class="mode-track"><span class="mode-track-moon"></span><span class="mode-track-sun"></span></div><div class="mode-thumb"></div></div></div></div></nav><div class="header-banner"><div class="header-banner-info"><div class="header-banner-info__title">DemoOrBug</div><div class="header-banner-info__subtitle">懒惰、急躁、傲慢 ———— 当代程序员美德</div></div><div class="header-banner-arrow"><div class="header-banner-arrow__icon"><i class="fas fa-angle-down"></i></div></div></div></div></header><main class="main" id="main"><div class="main-inner"><div class="content-wrap" id="content-wrap"><div class="content" id="content"><!-- Just used to judge whether it is an article page--><div id="is-post"></div><div class="post"><header class="post-header"><h1 class="post-title">Redis的消息订阅、pipeline、事务、modules、布隆过滤器、缓存LRU</h1><div class="post-meta"><span class="post-meta-item post-meta-item--createtime"><span class="post-meta-item__icon"><i class="far fa-calendar-plus"></i></span><span class="post-meta-item__info">发表于</span><span class="post-meta-item__value">2020-09-23</span></span><span class="post-meta-item post-meta-item--updatetime"><span class="post-meta-item__icon"><i class="far fa-calendar-check"></i></span><span class="post-meta-item__info">更新于</span><span class="post-meta-item__value">2020-09-23</span></span><span class="post-meta-item post-meta-item--wordcount"><span class="post-meta-item__icon"><i class="far fa-file-word"></i></span><span class="post-meta-item__info">字数统计</span><span class="post-meta-item__value">2.2k</span></span><span class="post-meta-item post-meta-item--readtime"><span class="post-meta-item__icon"><i class="far fa-clock"></i></span><span class="post-meta-item__info">阅读时长</span><span class="post-meta-item__value">12分</span></span><span class="post-meta-item post-meta-item--visitors"><span class="post-meta-item__icon"><i class="fas fa-eye"></i></span><span class="post-meta-item__info">阅读次数</span><span class="post-meta-item__value" id="busuanzi_value_page_pv"></span></span></div></header><div class="post-body">
+        <h1 id="redis的消息订阅、pipeline、事务、modules、布隆过滤器、缓存LRU"   >
+          <a href="#redis的消息订阅、pipeline、事务、modules、布隆过滤器、缓存LRU" class="heading-link"><i class="fas fa-link"></i></a>redis的消息订阅、pipeline、事务、modules、布隆过滤器、缓存LRU</h1>
+      
+        <h2 id="消息订阅"   >
+          <a href="#消息订阅" class="heading-link"><i class="fas fa-link"></i></a>消息订阅</h2>
+      <p>Publish 命令用于将信息发送到指定的频道</p>
+<p>Subscribe 命令用于订阅给定的一个或多个频道的信息</p>
+<ul>
+<li>只有订阅后才能收到Publish的消息，之前的消息收不到<br>
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="https://pic.downk.cc/item/5f6a8f82160a154a678e6ebf.png"  alt="8b236951b1b7cf3d33f4b64843ed8e5d.png">
+      <br>
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="https://pic.downk.cc/item/5f6a8f82160a154a678e6eb2.png"  alt="accd13013b4e1c3a748af1b1054d196e.png">
+      </li>
+</ul>
+<a id="more"></a>
+
+
+        <h3 id="应用场景"   >
+          <a href="#应用场景" class="heading-link"><i class="fas fa-link"></i></a>应用场景</h3>
+      <p>在线聊天、消息推送…<br>
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="https://pic.downk.cc/item/5f6a8f82160a154a678e6eb4.png"  alt="a1c5023f01ff7089c33cbffeb951e4a1.png">
+      <br>实时消息可以使用发布订阅，短期历史消息可以使用zset（有序集合）<br>也可以再使用一个redis，订阅到发布的消息后做zset<br>
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="https://pic.downk.cc/item/5f6a8f82160a154a678e6eb8.png"  alt="66b9bbbcd1530bd75b88332bb82eda14.png">
+      </p>
+
+        <h2 id="pipeline-管道"   >
+          <a href="#pipeline-管道" class="heading-link"><i class="fas fa-link"></i></a>pipeline 管道</h2>
+      <p>简单来说就是<strong>把一组命令打包，然后一次发送过去</strong></p>
+<p>pipeline省略由于单线程导致的命令排队时间，一次命令的消耗时间=一次网络时间 + 命令执行时间<br>比起命令执行时间，网络时间很可能成为系统的瓶颈<br>pipeline的作用是将一批命令进行打包，然后发送给服务器，服务器执行完按顺序打包返回。<br>通过pipeline，一次pipeline（n条命令）=一次网络时间 + n次命令时间</p>
+<p>注意事项：</p>
+<ol>
+<li>每次pipeline携带数量不推荐过大，否则会影响网络性能</li>
+<li>pipeline每次只能作用在一个Redis节点上</li>
+</ol>
+
+        <h2 id="事务"   >
+          <a href="#事务" class="heading-link"><i class="fas fa-link"></i></a>事务</h2>
+      <p>Redis 事务的本质是一组命令的集合。redis事务就是<strong>一次性、顺序性、排他性</strong>的执行一个队列中的一系列命令。Redis事务没有隔离级别的概念，因为在发送EXEC命令前被放入队列缓存，并不会被实际执行</p>
+<p>Redis中，<strong>单条命令是原子性</strong>执行的，但事务<strong>不保证原子性</strong>，且<strong>没有回滚</strong>。事务中任意命令执行失败，其余的命令仍会被执行。</p>
+
+        <h3 id="命令"   >
+          <a href="#命令" class="heading-link"><i class="fas fa-link"></i></a>命令</h3>
+      <p>watch 命令用于监视一个(或多个) key ，如果在事务执行之前这个(或这些) key 被其他命令所改动，那么事务将被打断<br>multi : 标记一个事务块的开始<br>exec : 执行所有事务块的命令 （ 一旦执行exec后，之前加的监控锁都会被取消掉 ）　　　discard : 取消事务，放弃事务块中的所有命令<br>unwatch : 取消watch对所有key的监控</p>
+
+        <h3 id="案例"   >
+          <a href="#案例" class="heading-link"><i class="fas fa-link"></i></a>案例</h3>
+      <ol>
+<li>正常<br> 
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="https://pic.downk.cc/item/5f6a8fac160a154a678e7c53.png"  alt="65849938dd3f52894217db463dbac09d.png">
+      </li>
+<li>放弃事务<br> 
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="https://pic.downk.cc/item/5f6a8fab160a154a678e7c3a.png"  alt="f28077314a3cacb8c1c76e498efbed96.png">
+      </li>
+<li>若在事务队列中存在<strong>命令性错误</strong>（类似于java编译性错误），则执行EXEC命令时，所有命令都不会执行<br> 
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="https://pic.downk.cc/item/5f6a8fab160a154a678e7c3c.png"  alt="4ff07222beecab343cdbb00c2cd3bc41.png">
+      </li>
+<li>若在事务队列中存在<strong>语法性错误</strong>（类似于java的运行时异常），则执行EXEC命令时，其他正确命令会被执行，错误命令抛出异常。<br> 
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="https://pic.downk.cc/item/5f6a8fab160a154a678e7c40.png"  alt="1ff66a6f00f4db9b8eb223277339cea8.png">
+      </li>
+<li>使用watch<br> 
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="https://pic.downk.cc/item/5f6a8fab160a154a678e7c49.png"  alt="6be096c42a852bf9331352584ed60b86.png">
+      </li>
+</ol>
+
+        <h2 id="modules"   >
+          <a href="#modules" class="heading-link"><i class="fas fa-link"></i></a>modules</h2>
+      <p>redis可以添加其他的模块</p>
+
+        <h2 id="布隆过滤器（RedisBloom）"   >
+          <a href="#布隆过滤器（RedisBloom）" class="heading-link"><i class="fas fa-link"></i></a>布隆过滤器（RedisBloom）</h2>
+      
+        <h3 id="缓存穿透"   >
+          <a href="#缓存穿透" class="heading-link"><i class="fas fa-link"></i></a>缓存穿透</h3>
+      <p>一般情况下，先查询缓存是否有该条数据，缓存中没有时，再查询数据库。当数据库也不存在该条数据时，每次查询都要访问数据库，这就是<strong>缓存穿透</strong>。<br>缓存穿透带来的问题是，当有大量请求查询数据库不存在的数据时，就会给数据库带来压力，甚至会拖垮数据库。<br>可以使用布隆过滤器解决缓存穿透的问题，把已存在数据的key存在布隆过滤器中。当有新的请求时，先到布隆过滤器中查询是否存在，如果不存在该条数据直接返回；如果存在该条数据再查询缓存查询数据库。</p>
+
+        <h3 id="原理简介"   >
+          <a href="#原理简介" class="heading-link"><i class="fas fa-link"></i></a>原理简介</h3>
+      <p>布隆过滤器是一个BIT数组。<br>向布隆过滤器中添加元素时，会使用多个无偏哈希函数对元素进行哈希，算出一个整数索引值，然后对位数组长度进行取模运算得到一个位置，每个无偏哈希函数都会得到一个不同的位置。再把位数组的这几个位置都设置为1，这就完成了bf.add命令的操作。<br>判断是否存在时，和添加元素一样，也会把哈希的几个位置算出来，然后看看位数组中对应的几个位置是否都为1，只要有一个位为0，就说明不存在。如果这几个位置都为1，并不能完全说明这个元素就一定存在，有可能这些位置为1是因为其他元素的存在，这就是布隆过滤器会出现误判的原因。<br>
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="https://pic.downk.cc/item/5f6a9002160a154a678eb149.png"  alt="5d1b22a5588931cefae31c2773a90356.png">
+      <br>元素1、2是已有的，分别计算单有可能会hash碰撞<br>元素3展示误判情况，虽然都是1，但有可能不是同一商品造成的1<br>如果出现了3的情况，可以增加redis中的key，value标记他在数据库中不存在，下次再遇到就会直接get到key是不存在的</p>
+<p>当数据库中增加是，bloom过滤器中也要增加</p>
+
+        <h3 id="布隆过滤器不支持删除"   >
+          <a href="#布隆过滤器不支持删除" class="heading-link"><i class="fas fa-link"></i></a>布隆过滤器不支持删除</h3>
+      
+        <h3 id="基本使用"   >
+          <a href="#基本使用" class="heading-link"><i class="fas fa-link"></i></a>基本使用</h3>
+      <ol>
+<li>bf.add 添加元素到布隆过滤器</li>
+<li>bf.exists 判断元素是否在布隆过滤器</li>
+<li>bf.madd 添加多个元素到布隆过滤器，bf.add只能添加一个</li>
+<li>bf.mexists 判断多个元素是否在布隆过滤器</li>
+<li>bf.reserve命令创建一个自定义的布隆过滤器，有3个参数<ol>
+<li>key：键</li>
+<li>error_rate：期望错误率，期望错误率越低，需要的空间就越大</li>
+<li>capacity：初始容量，当实际元素的数量超过这个初始化容量时，误判率上升<br>
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="https://pic.downk.cc/item/5f6a9002160a154a678eb147.png"  alt="c40d339c61e52660e033e90ade9ebb8c.png">
+      </li>
+<li>如果对应的key已经存在时，在执行bf.reserve命令就会报错。如果不使用bf.reserve命令创建，而是使用Redis自动创建的布隆过滤器，<strong>默认的error_rate是 0.01，capacity是 100</strong>。</li>
+</ol>
+</li>
+</ol>
+
+        <h3 id="优化升级"   >
+          <a href="#优化升级" class="heading-link"><i class="fas fa-link"></i></a>优化升级</h3>
+      
+        <h4 id="Counting-Bloom"   >
+          <a href="#Counting-Bloom" class="heading-link"><i class="fas fa-link"></i></a>Counting Bloom</h4>
+      <p>升级版的布隆过滤器: Counting Bloom Filter</p>
+<ul>
+<li>原理是把位图的位 升级为计数器，实现了删除功能
+        <h4 id="布谷鸟过滤器"   >
+          <a href="#布谷鸟过滤器" class="heading-link"><i class="fas fa-link"></i></a>布谷鸟过滤器</h4>
+      布谷鸟过滤器(Cuckoo filter)</li>
+<li>一维数组实现的</li>
+<li>使用两个 hash 算法将新来的元素映射到数组的两个位置。如果两个位置中有一个位置位空, 那么就可以将元素直接放进去。但是如果这两个位置都满了, 它就会随机踢走一个, 然后自己霸占了这个位置，并会为这个被踢走的数据, 找一个新家</li>
+<li>假如数组太过拥挤, 踢了几十次仍然没有找到空缺的位置, 那就需要为数组扩容了</li>
+<li>改良方案：<ol>
+<li>增加 hash 函数, 让每个元素不止有两个巢</li>
+<li>每个位置上挂多个巢（链表）</li>
+<li>以上两种结合</li>
+</ol>
+</li>
+<li>缺点：无法对同一个数据连续插入，如果连续插入同一个数据, 马上会触发扩容（同一个数据怎么计算结果都一样）</li>
+</ul>
+
+        <h2 id="redis作为缓存"   >
+          <a href="#redis作为缓存" class="heading-link"><i class="fas fa-link"></i></a>redis作为缓存</h2>
+      <p>redis作为数据库/缓存的区别：</p>
+<ol>
+<li>缓存数据相对不重要</li>
+<li>缓存不是全量数据</li>
+<li>缓存应该随着访问变化，以热数据为主</li>
+</ol>
+<ul>
+<li>缓存减少后端压力，速度快</li>
+</ul>
+<ol>
+<li><p>内存是有限，随着访问的变化，应该淘汰掉冷数据<br> 内存大小可以通过maxmemory <bytes>配置，单位是byte<br> maxmemory-policy配置回收策略</p>
+<ul>
+<li><p>noeviction 不删除键，返回错误信息(redis默认选项)</p>
+</li>
+<li><p>volatile-lru 使用LRU算法删除一个键(只针对设置了过期时间的key　　</p>
+</li>
+<li><p>allkeys-lru 使用LRU算法删除一个键</p>
+</li>
+<li><p>volatile-lfu 使用LFU算法删除一个键(只针对设置了过期时间的键)　　</p>
+</li>
+<li><p>allkeys-lfu 使用LFU算法删除一个键</p>
+</li>
+<li><p>volatile-random 随机删除一个键(只针对设置了过期时间的键)　　</p>
+</li>
+<li><p>allkeys-random 随机删除一个键　　</p>
+</li>
+<li><p>volatile-ttl 删除最早过期的一个键</p>
+<p>一般作为缓存使用allkeys-lru和volatile-lru    </p>
+</li>
+<li><p>LFU   用了多少次；   LRU  多久没用的</p>
+</li>
+</ul>
+</li>
+<li><p>key的有效期</p>
+<ol>
+<li>有效期可以set时设置，也可以使用EXPIRE设置</li>
+<li>对已经有过期时间的key执行EXPIRE操作，将会更新它的过期时间</li>
+<li>访问（get）不会重置、刷新过期时间</li>
+<li>set会移除过期时间</li>
+<li>EXPIREAT key “timestamp”设置一个key在”timestamp”(时间戳(秒))之后过期</li>
+<li>ttl获取过期时间</li>
+<li>PERSIST移除过期时间</li>
+</ol>
+</li>
+<li><p>redis清除过期时间</p>
+<ol>
+<li>被动清除<br> 主动访问一个过期的key时，redis会将其直接从内存中删除。但是如果一个过期key永远不访问就会一直占用空间</li>
+<li>主动清除<br> redis在周期性执行的函数中会主动清理，redis采用了一个随机算法：<br> 随机的抽取N(默认100)个被设置了过期时间的key，检查这其中已经过期的key，将其清除。如果清除比例超过了25%（默认），则会再进行一次主动清理，直到过期key在25%以下</li>
+<li>内存不足时触发主动清理</li>
+</ol>
+</li>
+</ol>
+</div><footer class="post-footer"><div class="post-ending ending"><div class="ending__text">------ 本文结束，感谢您的阅读 ------</div></div><div class="post-copyright copyright"><div class="copyright-author"><span class="copyright-author__name">本文作者: </span><span class="copyright-author__value"><a href="https://bugordemo.github.io">hyf</a></span></div><div class="copyright-link"><span class="copyright-link__name">本文链接: </span><span class="copyright-link__value"><a href="https://bugordemo.github.io/2020/09/23/Redis%E7%9A%84%E6%B6%88%E6%81%AF%E8%AE%A2%E9%98%85%E3%80%81pipeline%E3%80%81%E4%BA%8B%E5%8A%A1%E3%80%81modules%E3%80%81%E5%B8%83%E9%9A%86%E8%BF%87%E6%BB%A4%E5%99%A8%E3%80%81%E7%BC%93%E5%AD%98LRU/">https://bugordemo.github.io/2020/09/23/Redis%E7%9A%84%E6%B6%88%E6%81%AF%E8%AE%A2%E9%98%85%E3%80%81pipeline%E3%80%81%E4%BA%8B%E5%8A%A1%E3%80%81modules%E3%80%81%E5%B8%83%E9%9A%86%E8%BF%87%E6%BB%A4%E5%99%A8%E3%80%81%E7%BC%93%E5%AD%98LRU/</a></span></div><div class="copyright-notice"><span class="copyright-notice__name">版权声明: </span><span class="copyright-notice__value">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" rel="external nofollow" target="_blank">BY-NC-SA</a> 许可协议。转载请注明出处！</span></div></div><div class="post-tags"><span class="post-tags-item"><span class="post-tags-item__icon"><i class="fas fa-tag"></i></span><a class="post-tags-item__link" href="https://bugordemo.github.io/tags/Redis/">Redis</a></span></div><div class="post-reward reward"><div class="reward-button">请我喝杯咖啡~</div><div class="reward-qrcode"><span class="reward-qrcode-alipay"><img class="reward-qrcode-alipay__img" src="/assets/alipay.jpg"><div class="reward-qrcode-alipay__text">支付宝打赏</div></span><span class="reward-qrcode-wechat"><img class="reward-qrcode-wechat__img" src="/assets/wechat.jpg"><div class="reward-qrcode-wechat__text">微信打赏</div></span></div></div><nav class="post-paginator paginator"><div class="paginator-prev"><a class="paginator-prev__link" href="/2020/09/23/redis%E7%9A%84%E6%8C%81%E4%B9%85%E5%8C%96RDB%E3%80%81fork%E3%80%81copyonwrite%E3%80%81AOF%E3%80%81RDB-AOF%E6%B7%B7%E5%90%88%E4%BD%BF%E7%94%A8/"><span class="paginator-prev__icon"><i class="fas fa-angle-left"></i></span><span class="paginator-prev__text">Redis的持久化RDB、fork、copyonwrite、AOF、RDB&amp;AOF混合使用</span></a></div><div class="paginator-next"><a class="paginator-next__link" href="/2020/09/23/Redis%E7%9A%84%E7%B1%BB%E5%9E%8B%E5%8F%8A%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/"><span class="paginator-prev__text">Redis的类型及常用命令</span><span class="paginator-next__icon"><i class="fas fa-angle-right"></i></span></a></div></nav></footer></div></div></div><div class="sidebar-wrap" id="sidebar-wrap"><aside class="sidebar" id="sidebar"><div class="sidebar-nav"><span class="sidebar-nav-toc current">文章目录</span><span class="sidebar-nav-ov">站点概览</span></div><section class="sidebar-toc"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%B6%88%E6%81%AF%E8%AE%A2%E9%98%85"><span class="toc-number">1.</span> <span class="toc-text">
+          消息订阅</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%BA%94%E7%94%A8%E5%9C%BA%E6%99%AF"><span class="toc-number">1.1.</span> <span class="toc-text">
+          应用场景</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#pipeline-%E7%AE%A1%E9%81%93"><span class="toc-number">2.</span> <span class="toc-text">
+          pipeline 管道</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BA%8B%E5%8A%A1"><span class="toc-number">3.</span> <span class="toc-text">
+          事务</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%91%BD%E4%BB%A4"><span class="toc-number">3.1.</span> <span class="toc-text">
+          命令</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%A1%88%E4%BE%8B"><span class="toc-number">3.2.</span> <span class="toc-text">
+          案例</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#modules"><span class="toc-number">4.</span> <span class="toc-text">
+          modules</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%B8%83%E9%9A%86%E8%BF%87%E6%BB%A4%E5%99%A8%EF%BC%88RedisBloom%EF%BC%89"><span class="toc-number">5.</span> <span class="toc-text">
+          布隆过滤器（RedisBloom）</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%BC%93%E5%AD%98%E7%A9%BF%E9%80%8F"><span class="toc-number">5.1.</span> <span class="toc-text">
+          缓存穿透</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%8E%9F%E7%90%86%E7%AE%80%E4%BB%8B"><span class="toc-number">5.2.</span> <span class="toc-text">
+          原理简介</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%B8%83%E9%9A%86%E8%BF%87%E6%BB%A4%E5%99%A8%E4%B8%8D%E6%94%AF%E6%8C%81%E5%88%A0%E9%99%A4"><span class="toc-number">5.3.</span> <span class="toc-text">
+          布隆过滤器不支持删除</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%9F%BA%E6%9C%AC%E4%BD%BF%E7%94%A8"><span class="toc-number">5.4.</span> <span class="toc-text">
+          基本使用</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BC%98%E5%8C%96%E5%8D%87%E7%BA%A7"><span class="toc-number">5.5.</span> <span class="toc-text">
+          优化升级</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#Counting-Bloom"><span class="toc-number">5.5.1.</span> <span class="toc-text">
+          Counting Bloom</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%B8%83%E8%B0%B7%E9%B8%9F%E8%BF%87%E6%BB%A4%E5%99%A8"><span class="toc-number">5.5.2.</span> <span class="toc-text">
+          布谷鸟过滤器</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#redis%E4%BD%9C%E4%B8%BA%E7%BC%93%E5%AD%98"><span class="toc-number">6.</span> <span class="toc-text">
+          redis作为缓存</span></a></li></ol></section><!-- ov = overview--><section class="sidebar-ov hide"><div class="sidebar-ov-author"><div class="sidebar-ov-author__avatar"><img class="sidebar-ov-author__avatar_img" src="https://wx2.sbimg.cn/2020/09/22/GJ1jY.md.jpg" alt="avatar"></div><p class="sidebar-ov-author__text">write code and love life</p></div><div class="sidebar-ov-social"><a class="sidebar-ov-social-item" href="https://github.com/bugORdemo" target="_blank" rel="noopener" data-popover="Github" data-popover-pos="up"><span class="sidebar-ov-social-item__icon"><i class="fab fa-github"></i></span></a><a class="sidebar-ov-social-item" href="NullPointerEXC-H" target="_blank" rel="noopener" data-popover="微信" data-popover-pos="up"><span class="sidebar-ov-social-item__icon"><i class="fab fa-weixin"></i></span></a><a class="sidebar-ov-social-item" href="798968439" target="_blank" rel="noopener" data-popover="QQ" data-popover-pos="up"><span class="sidebar-ov-social-item__icon"><i class="fab fa-qq"></i></span></a></div><div class="sidebar-ov-cc"><a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank" rel="noopener" data-popover="知识共享许可协议" data-popover-pos="up"><img src="/images/cc-by-nc-sa.svg"></a></div></section><div class="sidebar-reading"><div class="sidebar-reading-info"><span class="sidebar-reading-info__text">你已阅读了 </span><span class="sidebar-reading-info__num">0</span></div><div class="sidebar-reading-line"></div></div></aside></div><div class="clearfix"></div></div></main><footer class="footer" id="footer"><div class="footer-inner"><div><span>Copyright © 2020</span><span class="footer__icon"><i class="fas fa-heart"></i></span><span><a href="https://github.com/bugORdemo" rel="noopener" target="_blank">bugORdemo</a></span></div><div><span>由 <a href="http://hexo.io/" title="Hexo" target="_blank" rel="noopener">Hexo</a> 强力驱动</span><span> v5.2.0</span><span class="footer__devider">|</span><span>主题 - <a href="https://github.com/liuyib/hexo-theme-stun/" title="Stun" target="_blank" rel="noopener">Stun</a></span><span> v2.1.1</span></div><div class="busuanzi"><span class="busuanzi-siteuv"><span class="busuanzi-siteuv__icon"><i class="fas fa-user"></i></span><span class="busuanzi-siteuv__info">访问人数</span><span class="busuanzi-siteuv__value" id="busuanzi_value_site_uv"></span></span><span class="busuanzi-sitepv"><span class="busuanzi-siteuv__icon"><i class="fas fa-eye"></i></span><span class="busuanzi-siteuv__info">浏览总量</span><span class="busuanzi-siteuv__value" id="busuanzi_value_site_pv"></span></span></div></div></footer><div class="loading-bar" id="loading-bar"><div class="loading-bar__progress"></div></div><div class="back2top" id="back2top"><span class="back2top__icon"><i class="fas fa-rocket"></i></span></div></div><script src="https://cdn.jsdelivr.net/npm/jquery@v3.4.1/dist/jquery.min.js"></script><script src="https://cdn.jsdelivr.net/npm/velocity-animate@1.5.2/velocity.min.js"></script><script src="https://cdn.jsdelivr.net/npm/velocity-animate@1.5.2/velocity.ui.min.js"></script><script src="https://cdn.jsdelivr.net/npm/ribbon.js@latest/dist/ribbon.min.js" size="120" alpha="0.6" zIndex="-1"></script><script src="https://cdn.jsdelivr.net/gh/fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.js"></script><script src="https://cdn.jsdelivr.net/npm/masonry-layout@4.2.2/dist/masonry.pkgd.min.js"></script><script src="https://cdn.jsdelivr.net/npm/lazyload@2.0.0-rc.2/lazyload.min.js"></script><script src="https://cdn.jsdelivr.net/npm/pjax@latest/pjax.min.js"></script><script>window.addEventListener('DOMContentLoaded', function () {
+  var pjax = new Pjax({"selectors":["head title","#main",".pjax-reload"],"history":true,"scrollTo":false,"scrollRestoration":false,"cacheBust":false,"debug":false,"currentUrlFullReload":false,"timeout":0});
+  // 加载进度条的计时器
+  var loadingTimer = null;
+
+  // 重置页面 Y 方向上的滚动偏移量
+  document.addEventListener('pjax:send', function () {
+    $('.header-nav-menu').removeClass('show');
+    if (CONFIG.pjax && CONFIG.pjax.avoidBanner) {
+      $('html').velocity('scroll', {
+        duration: 500,
+        offset: $('#header').height(),
+        easing: 'easeInOutCubic'
+      });
+    }
+
+    var loadingBarWidth = 20;
+    var MAX_LOADING_WIDTH = 95;
+
+    $('.loading-bar').addClass('loading');
+    $('.loading-bar__progress').css('width', loadingBarWidth + '%');
+    clearInterval(loadingTimer);
+    loadingTimer = setInterval(function () {
+      loadingBarWidth += 3;
+      if (loadingBarWidth > MAX_LOADING_WIDTH) {
+        loadingBarWidth = MAX_LOADING_WIDTH;
+      }
+      $('.loading-bar__progress').css('width', loadingBarWidth + '%');
+    }, 500);
+  }, false);
+
+  window.addEventListener('pjax:complete', function () {
+    clearInterval(loadingTimer);
+    $('.loading-bar__progress').css('width', '100%');
+    $('.loading-bar').removeClass('loading');
+    setTimeout(function () {
+      $('.loading-bar__progress').css('width', '0');
+    }, 400);
+    $('link[rel=prefetch], script[data-pjax-rm]').each(function () {
+      $(this).remove();
+    });
+    $('script[data-pjax], #pjax-reload script').each(function () {
+      $(this).parent().append($(this).remove());
+    });
+
+    if (Stun.utils.pjaxReloadBoot) {
+      Stun.utils.pjaxReloadBoot();
+    }
+    if (Stun.utils.pjaxReloadScroll) {
+      Stun.utils.pjaxReloadScroll();
+    }
+    if (Stun.utils.pjaxReloadSidebar) {
+      Stun.utils.pjaxReloadSidebar();
+    }
+    if (false) {
+      if (Stun.utils.pjaxReloadHeader) {
+        Stun.utils.pjaxReloadHeader();
+      }
+      if (Stun.utils.pjaxReloadScrollIcon) {
+        Stun.utils.pjaxReloadScrollIcon();
+      }
+      if (Stun.utils.pjaxReloadLocalSearch) {
+        Stun.utils.pjaxReloadLocalSearch();
+      }
+    }
+  }, false);
+}, false);</script><div id="pjax-reload"><script src="https://cdn.jsdelivr.net/npm/quicklink@1.0.1/dist/quicklink.umd.js"></script><script>function initQuicklink() {
+  quicklink({
+    timeout: '10000',
+    priority: true,
+    ignores: [uri => uri.includes('#'), uri => uri === 'https://bugordemo.github.io/2020/09/23/Redis%E7%9A%84%E6%B6%88%E6%81%AF%E8%AE%A2%E9%98%85%E3%80%81pipeline%E3%80%81%E4%BA%8B%E5%8A%A1%E3%80%81modules%E3%80%81%E5%B8%83%E9%9A%86%E8%BF%87%E6%BB%A4%E5%99%A8%E3%80%81%E7%BC%93%E5%AD%98LRU/', /\/api\/?/,uri => uri.includes('.xml'),uri => uri.includes('.zip'),(uri, el) => el.hasAttribute('nofollow'),(uri, el) => el.hasAttribute('noprefetch')]
+  });
+}
+
+if (true || false) {
+  initQuicklink();
+} else {
+  window.addEventListener('DOMContentLoaded', initQuicklink, false);
+}</script><script src="https://cdn.jsdelivr.net/gh/sukkaw/busuanzi@latest/bsz.pure.mini.js" async></script></div><script src="/js/utils.js?v=2.1.1"></script><script src="/js/stun-boot.js?v=2.1.1"></script><script src="/js/scroll.js?v=2.1.1"></script><script src="/js/header.js?v=2.1.1"></script><script src="/js/sidebar.js?v=2.1.1"></script><script src="/live2dw/lib/L2Dwidget.min.js?094cbace49a39548bed64abff5988b05"></script><script>L2Dwidget.init({"model":{"jsonPath":"/live2dw/assets/koharu.model.json"},"display":{"position":"right","width":200,"height":350},"mobile":{"show":false},"log":false,"pluginJsPath":"lib/","pluginModelPath":"assets/","pluginRootPath":"live2dw/","tagMode":false});</script></body></html>

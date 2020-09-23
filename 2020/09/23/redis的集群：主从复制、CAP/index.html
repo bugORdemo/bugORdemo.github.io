@@ -1,0 +1,418 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="format-detection" content="telephone=no"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black"><link rel="icon" href="/assets/bilibili.jpg?v=2.1.1" type="image/png" sizes="32x32"><meta name="description" content="Redis的集群：主从复制、CAP                           CAP       指的是在一个分布式系统中，一致性（Consistency）、可用性（Availability）、分区容错性（Partition tolerance）。CAP 原则指的是，这三个要素最多只能同时实现两点，不可能三者兼顾">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Redis的集群：主从复制、CAP">
+<meta property="og:url" content="https://bugordemo.github.io/2020/09/23/redis%E7%9A%84%E9%9B%86%E7%BE%A4%EF%BC%9A%E4%B8%BB%E4%BB%8E%E5%A4%8D%E5%88%B6%E3%80%81CAP/index.html">
+<meta property="og:site_name" content="DemoOrBug">
+<meta property="og:description" content="Redis的集群：主从复制、CAP                           CAP       指的是在一个分布式系统中，一致性（Consistency）、可用性（Availability）、分区容错性（Partition tolerance）。CAP 原则指的是，这三个要素最多只能同时实现两点，不可能三者兼顾">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://pic.downk.cc/item/5f6a9137160a154a678f2405.png">
+<meta property="og:image" content="https://pic.downk.cc/item/5f6a9136160a154a678f23f8.png">
+<meta property="og:image" content="https://pic.downk.cc/item/5f6a9157160a154a678f2fd2.png">
+<meta property="og:image" content="https://pic.downk.cc/item/5f6a917a160a154a678f3ae0.png">
+<meta property="og:image" content="https://pic.downk.cc/item/5f6a917a160a154a678f3ae3.png">
+<meta property="og:image" content="https://pic.downk.cc/item/5f6a917a160a154a678f3ae7.png">
+<meta property="og:image" content="https://pic.downk.cc/item/5f6a917a160a154a678f3aea.png">
+<meta property="og:image" content="https://pic.downk.cc/item/5f6a917a160a154a678f3af0.png">
+<meta property="og:image" content="https://pic.downk.cc/item/5f6a91c6160a154a678f5458.png">
+<meta property="og:image" content="https://pic.downk.cc/item/5f6a91c6160a154a678f545d.png">
+<meta property="og:image" content="https://pic.downk.cc/item/5f6a91c6160a154a678f5450.png">
+<meta property="og:image" content="https://pic.downk.cc/item/5f6a91c6160a154a678f5452.png">
+<meta property="article:published_time" content="2020-09-23T00:04:30.000Z">
+<meta property="article:modified_time" content="2020-09-23T00:08:33.156Z">
+<meta property="article:author" content="hyf">
+<meta property="article:tag" content="Redis">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://pic.downk.cc/item/5f6a9137160a154a678f2405.png"><title>Redis的集群：主从复制、CAP | DemoOrBug</title><link ref="canonical" href="https://bugordemo.github.io/2020/09/23/redis%E7%9A%84%E9%9B%86%E7%BE%A4%EF%BC%9A%E4%B8%BB%E4%BB%8E%E5%A4%8D%E5%88%B6%E3%80%81CAP/"><link rel="dns-prefetch" href="https://cdn.jsdelivr.net"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.12.1/css/all.min.css" type="text/css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.css" type="text/css"><link rel="stylesheet" href="/css/index.css?v=2.1.1"><script>var Stun = window.Stun || {};
+var CONFIG = {
+  root: '/',
+  algolia: undefined,
+  fontIcon: {"prompt":{"success":"fas fa-check-circle","info":"fas fa-arrow-circle-right","warning":"fas fa-exclamation-circle","error":"fas fa-times-circle"},"copyBtn":"fas fa-copy"},
+  sidebar: {"offsetTop":"20px","tocMaxDepth":5},
+  header: {"enable":true,"showOnPost":true,"scrollDownIcon":true},
+  postWidget: {"endText":true},
+  nightMode: {"enable":true},
+  back2top: {"enable":true},
+  codeblock: {"style":"carbon","highlight":"light","wordWrap":false},
+  reward: true,
+  fancybox: true,
+  zoomImage: {"gapAside":"20px"},
+  galleryWaterfall: {"colWidth":"220px","gapX":"10px"},
+  lazyload: true,
+  pjax: {"avoidBanner":true},
+  externalLink: {"icon":{"enable":true,"name":"fas fa-external-link-alt"}},
+  shortcuts: {"switchPost":true},
+  prompt: {"copyButton":"复制","copySuccess":"复制成功","copyError":"复制失败"},
+  sourcePath: {"js":"js","css":"css","images":"images"},
+};
+
+window.CONFIG = CONFIG;</script><meta name="generator" content="Hexo 5.2.0"></head><body><div class="container" id="container"><header class="header" id="header"><div class="header-inner"><nav class="header-nav header-nav--fixed"><div class="header-nav-inner"><div class="header-nav-menubtn"><i class="fas fa-bars"></i></div><div class="header-nav-menu"><div class="header-nav-menu-item"><a class="header-nav-menu-item__link" href="/"><span class="header-nav-menu-item__icon"><i class="fas fa-home"></i></span><span class="header-nav-menu-item__text">首页</span></a></div><div class="header-nav-menu-item"><a class="header-nav-menu-item__link" href="javascript:;" onclick="return false;"><span class="header-nav-menu-item__icon"><i class="fas fa-folder-open"></i></span><span class="header-nav-menu-item__text">文章</span></a><div class="header-nav-submenu"><div class="header-nav-submenu-item"><a class="header-nav-submenu-item__link" href="/archives/"><span class="header-nav-submenu-item__icon"><i class="fas fa-folder-open"></i></span><span class="header-nav-submenu-item__text">归档</span></a></div><div class="header-nav-submenu-item"><a class="header-nav-submenu-item__link" href="/categories/"><span class="header-nav-submenu-item__icon"><i class="fas fa-layer-group"></i></span><span class="header-nav-submenu-item__text">分类</span></a></div><div class="header-nav-submenu-item"><a class="header-nav-submenu-item__link" href="/tags/"><span class="header-nav-submenu-item__icon"><i class="fas fa-tags"></i></span><span class="header-nav-submenu-item__text">标签</span></a></div></div></div></div><div class="header-nav-mode"><div class="mode"><div class="mode-track"><span class="mode-track-moon"></span><span class="mode-track-sun"></span></div><div class="mode-thumb"></div></div></div></div></nav><div class="header-banner"><div class="header-banner-info"><div class="header-banner-info__title">DemoOrBug</div><div class="header-banner-info__subtitle">懒惰、急躁、傲慢 ———— 当代程序员美德</div></div><div class="header-banner-arrow"><div class="header-banner-arrow__icon"><i class="fas fa-angle-down"></i></div></div></div></div></header><main class="main" id="main"><div class="main-inner"><div class="content-wrap" id="content-wrap"><div class="content" id="content"><!-- Just used to judge whether it is an article page--><div id="is-post"></div><div class="post"><header class="post-header"><h1 class="post-title">Redis的集群：主从复制、CAP</h1><div class="post-meta"><span class="post-meta-item post-meta-item--createtime"><span class="post-meta-item__icon"><i class="far fa-calendar-plus"></i></span><span class="post-meta-item__info">发表于</span><span class="post-meta-item__value">2020-09-23</span></span><span class="post-meta-item post-meta-item--updatetime"><span class="post-meta-item__icon"><i class="far fa-calendar-check"></i></span><span class="post-meta-item__info">更新于</span><span class="post-meta-item__value">2020-09-23</span></span><span class="post-meta-item post-meta-item--wordcount"><span class="post-meta-item__icon"><i class="far fa-file-word"></i></span><span class="post-meta-item__info">字数统计</span><span class="post-meta-item__value">5.6k</span></span><span class="post-meta-item post-meta-item--readtime"><span class="post-meta-item__icon"><i class="far fa-clock"></i></span><span class="post-meta-item__info">阅读时长</span><span class="post-meta-item__value">30分</span></span><span class="post-meta-item post-meta-item--visitors"><span class="post-meta-item__icon"><i class="fas fa-eye"></i></span><span class="post-meta-item__info">阅读次数</span><span class="post-meta-item__value" id="busuanzi_value_page_pv"></span></span></div></header><div class="post-body">
+        <h1 id="Redis的集群：主从复制、CAP"   >
+          <a href="#Redis的集群：主从复制、CAP" class="heading-link"><i class="fas fa-link"></i></a>Redis的集群：主从复制、CAP</h1>
+      
+        <h2 id="CAP"   >
+          <a href="#CAP" class="heading-link"><i class="fas fa-link"></i></a>CAP</h2>
+      <p>指的是在一个分布式系统中，一致性（Consistency）、可用性（Availability）、分区容错性（Partition tolerance）。<br>CAP 原则指的是，这三个要素最多只能同时实现两点，不可能三者兼顾</p>
+<a id="more"></a>
+
+
+<ul>
+<li>一致性（C）：在分布式系统中的所有数据备份，在同一时刻是否同样的值。（等同于所有节点访问同一份最新的数据副本）</li>
+<li>可用性（A）：在集群中一部分节点故障后，集群整体是否还能响应客户端的读写请求。（对数据更新具备高可用性）</li>
+<li>分区容忍性（P）：以实际效果而言，分区相当于对通信的时限要求。系统如果不能在时限内达成数据一致性，就意味着发生了分区的情况，必须就当前操作在C和A之间做出选择。</li>
+</ul>
+
+        <h3 id="CAP的取舍"   >
+          <a href="#CAP的取舍" class="heading-link"><i class="fas fa-link"></i></a>CAP的取舍</h3>
+      <ol>
+<li>满足CA舍弃P，也就是满足一致性和可用性，舍弃容错性。<br> 意味着你的系统不是分布式的了，因为涉及分布式的想法就是把功能分开，部署到不同的机器上。</li>
+<li>满足CP舍弃A，也就是满足一致性和容错性，舍弃可用性。<br> 如果系统允许有段时间的访问失效等问题，这个是可以满足的。比如多个人并发买票，后台网络出现故障，你买的时候系统就崩溃了。</li>
+<li>满足AP舍弃C，也就是满足可用性和容错性，舍弃一致性。<br> 意味着你的系统在并发访问的时候可能会出现数据不一致的情况。</li>
+</ol>
+<p>实时证明，大多数都是<strong>牺牲了一致性</strong>。比如12306、淘宝，假如你买火车票，本来你看到的是还有一张票，其实在这个时刻已经被买走了，你填好了信息准备买的时候发现系统提示你没票了。这就是牺牲了一致性。<br>但是不是说牺牲一致性一定是最好的。就好比mysql中的事务机制，张三给李四转了100块钱，这时候必须保证张三的账户上少了100，李四的账户多了100。因此需要数据的一致性，而且什么时候转钱都可以，也需要可用性。但是可以转钱失败是可以允许的。</p>
+<p><strong>总结：视情况而定</strong></p>
+
+        <h2 id="主从复制"   >
+          <a href="#主从复制" class="heading-link"><i class="fas fa-link"></i></a>主从复制</h2>
+      <p>主从复制，是指将一台Redis服务器的数据，复制到其他的Redis服务器。前者称为主节点(master)，后者称为从节点(slave)；数据的复制是单向的，只能由主节点到从节点。</p>
+
+        <h3 id="主从复制的作用"   >
+          <a href="#主从复制的作用" class="heading-link"><i class="fas fa-link"></i></a>主从复制的作用</h3>
+      <ol>
+<li>数据冗余：主从复制实现了数据的热备份，是持久化之外的一种数据冗余方式。</li>
+<li>故障恢复：当主节点出现问题时，可以由从节点提供服务，实现快速的故障恢复；实际上是一种服务的冗余。</li>
+<li>负载均衡：在主从复制的基础上，配合读写分离，可以由主节点提供写服务，由从节点提供读服务（即写Redis数据时应用连接主节点，读Redis数据时应用连接从节点），分担服务器负载；尤其是在写少读多的场景下，通过多个从节点分担读负载，可以大大提高Redis服务器的并发量。</li>
+<li>高可用基石：除了上述作用以外，主从复制还是哨兵和集群能够实施的基础，因此说主从复制是Redis高可用的基础。</li>
+</ol>
+
+        <h3 id="基本操作"   >
+          <a href="#基本操作" class="heading-link"><i class="fas fa-link"></i></a>基本操作</h3>
+      <ol>
+<li>建立复制<ul>
+<li>主从复制的开启，完全是在从节点发起的；不需要在主节点做任何事情。</li>
+</ul>
+<ol>
+<li>配置文件<br> 在从服务器的配置文件中加入：slaveof <masterip> <masterport> （ip、端口号）<br> 例：slaveof 127.0.0.1 6379</li>
+<li>启动命令<br> redis-server启动命令后加入 –slaveof <masterip> <masterport></li>
+<li>客户端命令<br> Redis服务器启动后，直接通过客户端执行命令：slaveof <masterip> <masterport>，则该Redis实例成为从节点。</li>
+</ol>
+</li>
+<li>断开复制<br>可以通过slaveof no one断开。需要注意的是，从节点断开复制后，不会删除已有的数据，只是不再接受主节点新的数据变化。</li>
+</ol>
+
+        <h3 id="原理"   >
+          <a href="#原理" class="heading-link"><i class="fas fa-link"></i></a>原理</h3>
+      <p>主从复制过程大体可以分为3个阶段：连接建立阶段（即准备阶段）、数据同步阶段、命令传播阶段</p>
+
+        <h4 id="连接建立阶段"   >
+          <a href="#连接建立阶段" class="heading-link"><i class="fas fa-link"></i></a>连接建立阶段</h4>
+      <p>该阶段的主要作用是在主从节点之间建立连接，为数据同步做好准备</p>
+<ol>
+<li>保存主节点信息<br> 从节点服务器内部维护了两个字段，即masterhost和masterport字段，用于存储主节点的ip和port信息。<br> 
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="https://pic.downk.cc/item/5f6a9137160a154a678f2405.png"  alt="4c856835906262335cf9c2594aa80585.png">
+      </li>
+<li>建立socket连接<br> 从节点每秒1次调用复制定时函数replicationCron()，如果发现了有主节点可以连接，便会根据主节点的ip和port，创建socket连接。如果连接成功，则：<br> 从节点：为该socket建立一个专门处理复制工作的文件事件处理器，负责后续的复制工作，如接收RDB文件、接收命令传播等。<br> 主节点：接收到从节点的socket连接后（即accept之后），为该socket创建相应的客户端状态，<strong>并将从节点看做是连接到主节点的一个客户端，后面的步骤会以从节点向主节点发送命令请求的形式来进行</strong>。<br> 这个过程中，从节点打印日志如下：<br> 
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="https://pic.downk.cc/item/5f6a9136160a154a678f23f8.png"  alt="5fa140714495faa19eebc329da1b4643.png">
+      </li>
+<li>发送ping命令<br> 从节点成为主节点的客户端之后，发送ping命令进行首次请求，目的是：检查socket连接是否可用，以及主节点当前是否能够处理请求。<br> 从节点发送ping命令后，可能出现3种情况：<ol>
+<li>返回pong：说明socket连接正常，且主节点当前可以处理请求，复制过程继续。 </li>
+<li>超时：一定时间后从节点仍未收到主节点的回复，说明socket连接不可用，则从节点断开socket连接，并重连。</li>
+<li>返回pong以外的结果：如果主节点返回其他结果，如正在处理超时运行的脚本，说明主节点当前无法处理命令，则从节点断开socket连接，并重连。</li>
+</ol>
+</li>
+</ol>
+<pre><code>![ace63fa223d277b8c66226538c249f85.png](https://pic.downk.cc/item/5f6a9136160a154a678f23fb.png)</code></pre>
+<ol start="4">
+<li>身份验证<br> 如果从节点中设置了masterauth选项，则从节点需要向主节点进行身份验证；<br> 没有设置该选项，则不需要验证。<br> 从节点进行身份验证是通过向主节点发送auth命令进行的，auth命令的参数即为配置文件中的masterauth的值。<br> 如果主节点设置密码的状态，与从节点masterauth的状态一致（一致是指都存在，且密码相同，或者都不存在），则身份验证通过，复制过程继续；如果不一致，则从节点断开socket连接，并重连。</li>
+<li>发送从节点端口信息<br> 身份验证之后，从节点会向主节点发送其监听的端口号，主节点将该信息保存到该从节点对应的客户端的slave_listening_port字段中；该端口信息除了在主节点中执行info Replication时显示以外，没有其他作用。</li>
+</ol>
+
+        <h4 id="数据同步阶段"   >
+          <a href="#数据同步阶段" class="heading-link"><i class="fas fa-link"></i></a>数据同步阶段</h4>
+      <p>主从节点之间的连接建立以后，便可以开始进行数据同步，该阶段可以理解为从节点数据的初始化。具体执行的方式是：从节点向主节点发送psync命令（Redis2.8以前是sync命令），开始同步</p>
+<p>数据同步阶段是主从复制最核心的阶段，根据主从节点当前状态的不同，可以分为<strong>全量复制和部分复制</strong>，后面详解</p>
+<p>需要注意的是，在数据同步阶段之前，从节点是主节点的客户端，主节点不是从节点的客户端；而到了这一阶段及以后，主从节点互为客户端。</p>
+<p>原因在于：在此之前，主节点只需要响应从节点的请求即可，不需要主动发请求，而在数据同步阶段和后面的命令传播阶段，主节点需要主动向从节点发送请求（如推送缓冲区中的写命令），才能完成复制。</p>
+
+        <h4 id="命令传播阶段"   >
+          <a href="#命令传播阶段" class="heading-link"><i class="fas fa-link"></i></a>命令传播阶段</h4>
+      <p>数据同步阶段完成后，主从节点进入命令传播阶段；在这个阶段主节点将自己执行的写命令发送给从节点，从节点接收命令并执行，从而保证主从节点数据的一致性。</p>
+<p>需要注意的是，命令传播是异步的过程，即主节点发送写命令后并不会等待从节点的回复；因此实际上主从节点之间很难保持实时的一致性，延迟在所难免。数据不一致的程度，与主从节点之间的网络状况、主节点写命令的执行频率、以及主节点中的repl-disable-tcp-nodelay配置等有关</p>
+<p>repl-disable-tcp-nodelay no：该配置作用于命令传播阶段，控制主节点是否禁止与从节点的TCP_NODELAY；默认no，即不禁止TCP_NODELAY。当设置为yes时，TCP会对包进行合并从而减少带宽，但是发送的频率会降低，从节点数据延迟增加，一致性变差；具体发送频率与Linux内核的配置有关，默认配置为40ms。当设置为no时，TCP会立马将主节点的数据发送给从节点，带宽增加但延迟变小。<br>一般来说，只有当应用对Redis数据不一致的容忍度较高，且主从节点之间网络状况不好时，才会设置为yes，多数情况使用默认值no。</p>
+
+        <h3 id="全量复制和部分-增量-复制（数据同步阶段）"   >
+          <a href="#全量复制和部分-增量-复制（数据同步阶段）" class="heading-link"><i class="fas fa-link"></i></a>全量复制和部分(增量)复制（数据同步阶段）</h3>
+      <p>全量复制：用于初次复制或其他无法进行部分复制的情况，将主节点中的所有数据都发送给从节点，是一个非常重型的操作。</p>
+<p>部分复制：用于网络中断等情况后的复制，只将中断期间主节点执行的写命令发送给从节点，与全量复制相比更加高效。需要注意的是，如果网络中断时间过长，导致主节点没有能够完整地保存中断期间执行的写命令，则无法进行部分复制，仍使用全量复制。</p>
+
+        <h4 id="全量复制"   >
+          <a href="#全量复制" class="heading-link"><i class="fas fa-link"></i></a>全量复制</h4>
+      <p>全量复制是非常重型的操作：</p>
+<ol>
+<li>主节点通过bgsave命令fork子进程进行RDB持久化，该过程是非常消耗CPU、内存(页表复制)、硬盘IO的</li>
+<li>主节点通过网络将RDB文件发送给从节点，对主从节点的带宽都会带来很大的消耗</li>
+<li>从节点清空老数据、载入新RDB文件的过程是阻塞的，无法响应客户端的命令；如果从节点执行bgrewriteaof，也会带来额外的消耗</li>
+</ol>
+
+        <h4 id="部分-增量-复制"   >
+          <a href="#部分-增量-复制" class="heading-link"><i class="fas fa-link"></i></a>部分(增量)复制</h4>
+      <p>部分复制的实现，依赖于三个重要的概念：</p>
+<ol>
+<li><p>复制偏移量<br> 主节点和从节点分别维护一个复制偏移量（offset），代表的是主节点向从节点传递的字节数。主节点每次向从节点传播N个字节数据时，主节点的offset增加N；从节点每次收到主节点传来的N个字节数据时，从节点的offset增加N。</p>
+<p> offset用于判断主从节点的数据库状态是否一致：如果二者offset相同，则一致；如果offset不同，则不一致，此时可以根据两个offset找出从节点缺少的那部分数据。</p>
+</li>
+<li><p>复制积压缓冲区<br> 复制积压缓冲区是由主节点维护的、固定长度的、先进先出(FIFO)队列，默认大小1MB；当主节点开始有从节点时创建，其作用是备份主节点最近发送给从节点的数据。</p>
+<p> 注意，无论主节点有一个还是多个从节点，都只需要一个复制积压缓冲区。</p>
+<p> 在命令传播阶段，主节点除了将写命令发送给从节点，还会发送一份给复制积压缓冲区，作为写命令的备份；除了存储写命令，复制积压缓冲区中还存储了其中的每个字节对应的复制偏移量（offset）。</p>
+<p> 由于复制积压缓冲区定长且是先进先出，所以它保存的是主节点最近执行的写命令；时间较早的写命令会被挤出缓冲区。</p>
+<p> 由于该缓冲区长度固定且有限，因此可以备份的写命令也有限，当主从节点offset的差距过大超过缓冲区长度时，将无法执行部分复制，只能执行全量复制</p>
+</li>
+<li><p>服务器运行ID(runid)<br> 每个Redis节点(无论主从)，在启动时都会自动生成一个随机ID(每次启动都不一样)，由40个随机的十六进制字符组成；runid用来唯一识别一个Redis节点。通过info Server命令，可以查看节点的runid：<br> 
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="https://pic.downk.cc/item/5f6a9157160a154a678f2fd2.png"  alt="9bee1df4c993279bce6f74c65911aa42.png">
+      <br> 主从节点初次复制时，主节点将自己的runid发送给从节点，从节点将这个runid保存起来；当断线重连时，从节点会将这个runid发送给主节点；主节点根据runid判断能否进行部分复制：</p>
+<p> 如果从节点保存的runid与主节点现在的runid相同，说明主从节点之前同步过，主节点会继续尝试使用部分复制(到底能不能部分复制还要看offset和复制积压缓冲区的情况)；</p>
+<p> 如果从节点保存的runid与主节点现在的runid不同，说明从节点在断线前同步的Redis节点并不是当前的主节点，只能进行全量复制。</p>
+</li>
+</ol>
+
+        <h3 id="心跳机制（命令传播阶段）"   >
+          <a href="#心跳机制（命令传播阶段）" class="heading-link"><i class="fas fa-link"></i></a>心跳机制（命令传播阶段）</h3>
+      <p>在命令传播阶段，除了发送写命令，主从节点还维持着心跳机制：PING和REPLCONF ACK。心跳机制对于主从复制的超时判断、数据安全等有作用。</p>
+<ol>
+<li><p>主-&gt;从：PING<br> 每隔指定的时间，主节点会向从节点发送PING命令，这个PING命令的作用，主要是为了让从节点进行超时判断。</p>
+<p> PING发送的频率由repl-ping-slave-period参数控制，单位是秒，默认值是10s。</p>
+</li>
+<li><p>从-&gt;主：REPLCONF ACK<br> 在命令传播阶段，从节点会向主节点发送REPLCONF ACK命令，频率是每秒1次；命令格式为：REPLCONF ACK {offset}，其中offset指从节点保存的复制偏移量</p>
+</li>
+</ol>
+
+        <h3 id="相关配置"   >
+          <a href="#相关配置" class="heading-link"><i class="fas fa-link"></i></a>相关配置</h3>
+      <ol>
+<li><p>与主从节点都有关的配置</p>
+<ol>
+<li>slaveof <masterip> <masterport>：Redis启动时起作用；作用是建立复制关系，开启了该配置的Redis服务器在启动后成为从节点。该注释默认注释掉，即Redis服务器默认都是主节点。</li>
+<li>repl-timeout 60：与各个阶段主从节点连接超时判断有关，见前面的介绍。</li>
+</ol>
+</li>
+<li><p>主节点相关配置</p>
+<ol>
+<li><p>repl-diskless-sync no：作用于全量复制阶段，控制主节点是否使用diskless复制（无盘复制）。所谓diskless复制，是指在全量复制时，主节点不再先把数据写入RDB文件，而是直接写入slave的socket中，整个过程中不涉及硬盘；diskless复制在磁盘IO很慢而网速很快时更有优势。</p>
+</li>
+<li><p>repl-diskless-sync-delay 5：该配置作用于全量复制阶段，当主节点使用diskless复制时，该配置决定主节点向从节点发送之前停顿的时间，单位是秒；只有当diskless复制打开时有效，默认5s。之所以设置停顿时间，是基于以下两个考虑：(1)向slave的socket的传输一旦开始，新连接的slave只能等待当前数据传输结束，才能开始新的数据传输 (2)多个从节点有较大的概率在短时间内建立主从复制。</p>
+</li>
+<li><p>client-output-buffer-limit slave 256MB 64MB 60：与全量复制阶段主节点的缓冲区大小有关，见前面的介绍。</p>
+</li>
+<li><p>repl-disable-tcp-nodelay no：与命令传播阶段的延迟有关，见前面的介绍。</p>
+</li>
+<li><p>masterauth <master-password>：与连接建立阶段的身份验证有关，见前面的介绍。</p>
+</li>
+<li><p>repl-ping-slave-period 10：与命令传播阶段主从节点的超时判断有关，见前面的介绍。</p>
+</li>
+<li><p>repl-backlog-size 1mb：复制积压缓冲区的大小，见前面的介绍。</p>
+</li>
+<li><p>repl-backlog-ttl 3600：当主节点没有从节点时，复制积压缓冲区保留的时间，这样当断开的从节点重新连进来时，可以进行部分复制；默认3600s。如果设置为0，则永远不会释放复制积压缓冲区。</p>
+</li>
+<li><p>min-slaves-to-write 3与min-slaves-max-lag 10：规定了主节点的最小从节点数目，及对应的最大延迟，见前面的介绍。</p>
+</li>
+</ol>
+</li>
+<li><p>从节点相关配置</p>
+<ol>
+<li>slave-serve-stale-data yes：与从节点数据陈旧时是否响应客户端命令有关，见前面的介绍。</li>
+<li>slave-read-only yes：从节点是否只读；默认是只读的。由于从节点开启写操作容易导致主从节点的数据不一致，因此该配置尽量不要修改。</li>
+</ol>
+</li>
+</ol>
+
+        <h3 id="哨兵-（Sentinel）"   >
+          <a href="#哨兵-（Sentinel）" class="heading-link"><i class="fas fa-link"></i></a>哨兵 （Sentinel）</h3>
+      <p>主从复制的故障恢复无法自动化，哨兵实现了自动化的故障恢复。缺陷：写操作无法负载均衡；存储能力受到单机的限制。</p>
+<p><strong>哨兵的核心功能是主节点的自动故障转移。</strong><br>
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="https://pic.downk.cc/item/5f6a917a160a154a678f3ae0.png"  alt="9d70590cb86e7852c84e4921c16e3e87.png">
+      </p>
+<p>哨兵系统由一个或多个哨兵节点组成，哨兵节点是特殊的redis节点，不存储数据</p>
+
+        <h4 id="部署"   >
+          <a href="#部署" class="heading-link"><i class="fas fa-link"></i></a>部署</h4>
+      <ol>
+<li><p>部署主从节点<br> 哨兵系统中的主从节点，与普通的主从节点配置是一样的，并不需要做任何额外配置。下面分别是主节点（port=6379）和2个从节点（port=6380/6381）的配置文件<br> 
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="https://pic.downk.cc/item/5f6a917a160a154a678f3ae3.png"  alt="98b77293fb32b89404248224b96b55b5.png">
+      </p>
+</li>
+<li><p>部署哨兵节点<br> 3个哨兵节点的配置几乎是完全一样的，主要区别在于端口号的不同（26379/26380/26381），下面以26379节点为例介绍节点的配置和启动方式<br> 
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="https://pic.downk.cc/item/5f6a917a160a154a678f3ae7.png"  alt="6acf94e9c3ac54485cd2a80b1b59b014.png">
+      </p>
+<p> 其中，sentinel monitor mymaster 192.168.92.128 6379 2 配置的含义是：该哨兵节点监控192.168.92.128:6379这个主节点，该主节点的名称是mymaster，最后的2的含义与主节点的故障判定有关：至少需要2个哨兵节点同意，才能判定主节点故障并进行故障转移。</p>
+<p> 
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="https://pic.downk.cc/item/5f6a917a160a154a678f3aea.png"  alt="f9d444a1ed9260c268d987221dcb4386.png">
+      </p>
+<p> 按照上述方式配置和启动之后，整个哨兵系统就启动完毕了。可以通过redis-cli连接哨兵节点进行验证，如下图所示：可以看出26379哨兵节点已经在监控mymaster主节点(即192.168.92.128:6379)，并发现了其2个从节点和另外2个哨兵节点<br> 
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="https://pic.downk.cc/item/5f6a917a160a154a678f3af0.png"  alt="d97f2bba09665ed9718dea8fa3cd5517.png">
+      </p>
+</li>
+<li><p>演示故障转移</p>
+<ol>
+<li>首先，使用kill命令杀掉主节点<br>
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="https://pic.downk.cc/item/5f6a91c6160a154a678f5458.png"  alt="443abab5ca3bd4fdad4b178cb21d945a.png">
+      </li>
+<li>如果此时立即在哨兵节点中使用info Sentinel命令查看，会发现主节点还没有切换过来，因为哨兵发现主节点故障并转移，需要一段时间<br>
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="https://pic.downk.cc/item/5f6a91c6160a154a678f545d.png"  alt="fcf4629928160c2cc5f00792a408bc85.png">
+      </li>
+<li>一段时间以后，再次在哨兵节点中执行info Sentinel查看，发现主节点已经切换成6380节点<br>
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="https://pic.downk.cc/item/5f6a91c6160a154a678f5450.png"  alt="544eb50b4d28397f02860a4e966526a1.png">
+      <br>但是同时可以发现，哨兵节点认为新的主节点仍然有2个从节点，这是因为哨兵在将6380切换成主节点的同时，将6379节点置为其从节点；<br>虽然6379从节点已经挂掉，但是由于哨兵并不会对从节点进行客观下线，因此认为该从节点一直存在。当6379节点重新启动后，会自动变成6380节点的从节点。</li>
+<li>在故障转移阶段，哨兵和主从节点的配置文件都会被改写<ol>
+<li>对于主从节点，主要是slaveof配置的变化：新的主节点没有了slaveof配置，其从节点则slaveof新的主节点。</li>
+<li>对于哨兵节点，除了主从节点信息的变化，纪元(epoch)也会变化，下图中可以看到纪元相关的参数都+1了<br>
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="https://pic.downk.cc/item/5f6a91c6160a154a678f5452.png"  alt="0733288d4f4e9ddd77201b32fcd0ad03.png">
+      </li>
+</ol>
+</li>
+</ol>
+</li>
+</ol>
+
+        <h4 id="总结"   >
+          <a href="#总结" class="heading-link"><i class="fas fa-link"></i></a>总结</h4>
+      <ol>
+<li><p>哨兵系统中的主从节点，与普通的主从节点并没有什么区别，故障发现和转移是由哨兵来控制和完成的。</p>
+</li>
+<li><p>哨兵节点本质上是redis节点。</p>
+</li>
+<li><p>每个哨兵节点，只需要配置监控主节点，便可以自动发现其他的哨兵节点和从节点。</p>
+</li>
+<li><p>在哨兵节点启动和故障转移阶段，各个节点的配置文件会被重写(config rewrite)。</p>
+</li>
+<li><p>一个哨兵可以监控多个主节点，通过配置多条sentinel monitor即可实现</p>
+</li>
+</ol>
+
+        <h4 id="实践建议"   >
+          <a href="#实践建议" class="heading-link"><i class="fas fa-link"></i></a>实践建议</h4>
+      <ol>
+<li><p>哨兵节点的数量应不止一个，一方面增加哨兵节点的冗余，避免哨兵本身成为高可用的瓶颈；另一方面减少对下线的误判。此外，这些不同的哨兵节点应部署在不同的物理机上。</p>
+</li>
+<li><p>哨兵节点的数量应该是<strong>奇数</strong>，便于哨兵通过投票做出“决策”：领导者选举的决策、客观下线的决策等。</p>
+</li>
+<li><p>各个哨兵节点的配置应一致，包括硬件、参数等；此外，所有节点都应该使用ntp或类似服务，保证时间准确、一致。</p>
+</li>
+<li><p>哨兵的配置提供者和通知客户端功能，需要客户端的支持才能实现，如Jedis；如果开发者使用的库未提供相应支持，则可能需要开发者自己实现。</p>
+</li>
+<li><p>当哨兵系统中的节点在docker（或其他可能进行端口映射的软件）中部署时，应特别注意端口映射可能会导致哨兵系统无法正常工作，因为哨兵的工作基于与其他节点的通信，而docker的端口映射可能导致哨兵无法连接到其他节点。例如，哨兵之间互相发现，依赖于它们对外宣称的IP和port，如果某个哨兵A部署在做了端口映射的docker中，那么其他哨兵使用A宣称的port无法连接到A。</p>
+</li>
+</ol>
+
+        <h4 id="详细研究阅读"   >
+          <a href="#详细研究阅读" class="heading-link"><i class="fas fa-link"></i></a>详细研究阅读</h4>
+      <p><span class="exturl"><a class="exturl__link"   target="_blank" rel="noopener" href="https://www.cnblogs.com/kismetv/p/9236731.html" >https://www.cnblogs.com/kismetv/p/9236731.html</a><span class="exturl__icon"><i class="fas fa-external-link-alt"></i></span></span><br>深入学习Redis（3）：主从复制</p>
+<p><span class="exturl"><a class="exturl__link"   target="_blank" rel="noopener" href="https://www.cnblogs.com/kismetv/p/9609938.html" >https://www.cnblogs.com/kismetv/p/9609938.html</a><span class="exturl__icon"><i class="fas fa-external-link-alt"></i></span></span><br>深入学习Redis（4）：哨兵</p>
+</div><footer class="post-footer"><div class="post-ending ending"><div class="ending__text">------ 本文结束，感谢您的阅读 ------</div></div><div class="post-copyright copyright"><div class="copyright-author"><span class="copyright-author__name">本文作者: </span><span class="copyright-author__value"><a href="https://bugordemo.github.io">hyf</a></span></div><div class="copyright-link"><span class="copyright-link__name">本文链接: </span><span class="copyright-link__value"><a href="https://bugordemo.github.io/2020/09/23/redis%E7%9A%84%E9%9B%86%E7%BE%A4%EF%BC%9A%E4%B8%BB%E4%BB%8E%E5%A4%8D%E5%88%B6%E3%80%81CAP/">https://bugordemo.github.io/2020/09/23/redis%E7%9A%84%E9%9B%86%E7%BE%A4%EF%BC%9A%E4%B8%BB%E4%BB%8E%E5%A4%8D%E5%88%B6%E3%80%81CAP/</a></span></div><div class="copyright-notice"><span class="copyright-notice__name">版权声明: </span><span class="copyright-notice__value">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" rel="external nofollow" target="_blank">BY-NC-SA</a> 许可协议。转载请注明出处！</span></div></div><div class="post-tags"><span class="post-tags-item"><span class="post-tags-item__icon"><i class="fas fa-tag"></i></span><a class="post-tags-item__link" href="https://bugordemo.github.io/tags/Redis/">Redis</a></span></div><div class="post-reward reward"><div class="reward-button">请我喝杯咖啡~</div><div class="reward-qrcode"><span class="reward-qrcode-alipay"><img class="reward-qrcode-alipay__img" src="/assets/alipay.jpg"><div class="reward-qrcode-alipay__text">支付宝打赏</div></span><span class="reward-qrcode-wechat"><img class="reward-qrcode-wechat__img" src="/assets/wechat.jpg"><div class="reward-qrcode-wechat__text">微信打赏</div></span></div></div><nav class="post-paginator paginator"><div class="paginator-prev"><a class="paginator-prev__link" href="/2020/09/23/Redis%E9%9B%86%E7%BE%A4/"><span class="paginator-prev__icon"><i class="fas fa-angle-left"></i></span><span class="paginator-prev__text">Redis集群</span></a></div><div class="paginator-next"><a class="paginator-next__link" href="/2020/09/23/redis%E7%9A%84%E6%8C%81%E4%B9%85%E5%8C%96RDB%E3%80%81fork%E3%80%81copyonwrite%E3%80%81AOF%E3%80%81RDB-AOF%E6%B7%B7%E5%90%88%E4%BD%BF%E7%94%A8/"><span class="paginator-prev__text">Redis的持久化RDB、fork、copyonwrite、AOF、RDB&amp;AOF混合使用</span><span class="paginator-next__icon"><i class="fas fa-angle-right"></i></span></a></div></nav></footer></div></div></div><div class="sidebar-wrap" id="sidebar-wrap"><aside class="sidebar" id="sidebar"><div class="sidebar-nav"><span class="sidebar-nav-toc current">文章目录</span><span class="sidebar-nav-ov">站点概览</span></div><section class="sidebar-toc"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#CAP"><span class="toc-number">1.</span> <span class="toc-text">
+          CAP</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#CAP%E7%9A%84%E5%8F%96%E8%88%8D"><span class="toc-number">1.1.</span> <span class="toc-text">
+          CAP的取舍</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%BB%E4%BB%8E%E5%A4%8D%E5%88%B6"><span class="toc-number">2.</span> <span class="toc-text">
+          主从复制</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%B8%BB%E4%BB%8E%E5%A4%8D%E5%88%B6%E7%9A%84%E4%BD%9C%E7%94%A8"><span class="toc-number">2.1.</span> <span class="toc-text">
+          主从复制的作用</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%9F%BA%E6%9C%AC%E6%93%8D%E4%BD%9C"><span class="toc-number">2.2.</span> <span class="toc-text">
+          基本操作</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%8E%9F%E7%90%86"><span class="toc-number">2.3.</span> <span class="toc-text">
+          原理</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E8%BF%9E%E6%8E%A5%E5%BB%BA%E7%AB%8B%E9%98%B6%E6%AE%B5"><span class="toc-number">2.3.1.</span> <span class="toc-text">
+          连接建立阶段</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%95%B0%E6%8D%AE%E5%90%8C%E6%AD%A5%E9%98%B6%E6%AE%B5"><span class="toc-number">2.3.2.</span> <span class="toc-text">
+          数据同步阶段</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%91%BD%E4%BB%A4%E4%BC%A0%E6%92%AD%E9%98%B6%E6%AE%B5"><span class="toc-number">2.3.3.</span> <span class="toc-text">
+          命令传播阶段</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%85%A8%E9%87%8F%E5%A4%8D%E5%88%B6%E5%92%8C%E9%83%A8%E5%88%86-%E5%A2%9E%E9%87%8F-%E5%A4%8D%E5%88%B6%EF%BC%88%E6%95%B0%E6%8D%AE%E5%90%8C%E6%AD%A5%E9%98%B6%E6%AE%B5%EF%BC%89"><span class="toc-number">2.4.</span> <span class="toc-text">
+          全量复制和部分(增量)复制（数据同步阶段）</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%85%A8%E9%87%8F%E5%A4%8D%E5%88%B6"><span class="toc-number">2.4.1.</span> <span class="toc-text">
+          全量复制</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E9%83%A8%E5%88%86-%E5%A2%9E%E9%87%8F-%E5%A4%8D%E5%88%B6"><span class="toc-number">2.4.2.</span> <span class="toc-text">
+          部分(增量)复制</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%BF%83%E8%B7%B3%E6%9C%BA%E5%88%B6%EF%BC%88%E5%91%BD%E4%BB%A4%E4%BC%A0%E6%92%AD%E9%98%B6%E6%AE%B5%EF%BC%89"><span class="toc-number">2.5.</span> <span class="toc-text">
+          心跳机制（命令传播阶段）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%9B%B8%E5%85%B3%E9%85%8D%E7%BD%AE"><span class="toc-number">2.6.</span> <span class="toc-text">
+          相关配置</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%93%A8%E5%85%B5-%EF%BC%88Sentinel%EF%BC%89"><span class="toc-number">2.7.</span> <span class="toc-text">
+          哨兵 （Sentinel）</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E9%83%A8%E7%BD%B2"><span class="toc-number">2.7.1.</span> <span class="toc-text">
+          部署</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%80%BB%E7%BB%93"><span class="toc-number">2.7.2.</span> <span class="toc-text">
+          总结</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%AE%9E%E8%B7%B5%E5%BB%BA%E8%AE%AE"><span class="toc-number">2.7.3.</span> <span class="toc-text">
+          实践建议</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E8%AF%A6%E7%BB%86%E7%A0%94%E7%A9%B6%E9%98%85%E8%AF%BB"><span class="toc-number">2.7.4.</span> <span class="toc-text">
+          详细研究阅读</span></a></li></ol></li></ol></li></ol></section><!-- ov = overview--><section class="sidebar-ov hide"><div class="sidebar-ov-author"><div class="sidebar-ov-author__avatar"><img class="sidebar-ov-author__avatar_img" src="https://wx2.sbimg.cn/2020/09/22/GJ1jY.md.jpg" alt="avatar"></div><p class="sidebar-ov-author__text">write code and love life</p></div><div class="sidebar-ov-social"><a class="sidebar-ov-social-item" href="https://github.com/bugORdemo" target="_blank" rel="noopener" data-popover="Github" data-popover-pos="up"><span class="sidebar-ov-social-item__icon"><i class="fab fa-github"></i></span></a><a class="sidebar-ov-social-item" href="NullPointerEXC-H" target="_blank" rel="noopener" data-popover="微信" data-popover-pos="up"><span class="sidebar-ov-social-item__icon"><i class="fab fa-weixin"></i></span></a><a class="sidebar-ov-social-item" href="798968439" target="_blank" rel="noopener" data-popover="QQ" data-popover-pos="up"><span class="sidebar-ov-social-item__icon"><i class="fab fa-qq"></i></span></a></div><div class="sidebar-ov-cc"><a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank" rel="noopener" data-popover="知识共享许可协议" data-popover-pos="up"><img src="/images/cc-by-nc-sa.svg"></a></div></section><div class="sidebar-reading"><div class="sidebar-reading-info"><span class="sidebar-reading-info__text">你已阅读了 </span><span class="sidebar-reading-info__num">0</span></div><div class="sidebar-reading-line"></div></div></aside></div><div class="clearfix"></div></div></main><footer class="footer" id="footer"><div class="footer-inner"><div><span>Copyright © 2020</span><span class="footer__icon"><i class="fas fa-heart"></i></span><span><a href="https://github.com/bugORdemo" rel="noopener" target="_blank">bugORdemo</a></span></div><div><span>由 <a href="http://hexo.io/" title="Hexo" target="_blank" rel="noopener">Hexo</a> 强力驱动</span><span> v5.2.0</span><span class="footer__devider">|</span><span>主题 - <a href="https://github.com/liuyib/hexo-theme-stun/" title="Stun" target="_blank" rel="noopener">Stun</a></span><span> v2.1.1</span></div><div class="busuanzi"><span class="busuanzi-siteuv"><span class="busuanzi-siteuv__icon"><i class="fas fa-user"></i></span><span class="busuanzi-siteuv__info">访问人数</span><span class="busuanzi-siteuv__value" id="busuanzi_value_site_uv"></span></span><span class="busuanzi-sitepv"><span class="busuanzi-siteuv__icon"><i class="fas fa-eye"></i></span><span class="busuanzi-siteuv__info">浏览总量</span><span class="busuanzi-siteuv__value" id="busuanzi_value_site_pv"></span></span></div></div></footer><div class="loading-bar" id="loading-bar"><div class="loading-bar__progress"></div></div><div class="back2top" id="back2top"><span class="back2top__icon"><i class="fas fa-rocket"></i></span></div></div><script src="https://cdn.jsdelivr.net/npm/jquery@v3.4.1/dist/jquery.min.js"></script><script src="https://cdn.jsdelivr.net/npm/velocity-animate@1.5.2/velocity.min.js"></script><script src="https://cdn.jsdelivr.net/npm/velocity-animate@1.5.2/velocity.ui.min.js"></script><script src="https://cdn.jsdelivr.net/npm/ribbon.js@latest/dist/ribbon.min.js" size="120" alpha="0.6" zIndex="-1"></script><script src="https://cdn.jsdelivr.net/gh/fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.js"></script><script src="https://cdn.jsdelivr.net/npm/masonry-layout@4.2.2/dist/masonry.pkgd.min.js"></script><script src="https://cdn.jsdelivr.net/npm/lazyload@2.0.0-rc.2/lazyload.min.js"></script><script src="https://cdn.jsdelivr.net/npm/pjax@latest/pjax.min.js"></script><script>window.addEventListener('DOMContentLoaded', function () {
+  var pjax = new Pjax({"selectors":["head title","#main",".pjax-reload"],"history":true,"scrollTo":false,"scrollRestoration":false,"cacheBust":false,"debug":false,"currentUrlFullReload":false,"timeout":0});
+  // 加载进度条的计时器
+  var loadingTimer = null;
+
+  // 重置页面 Y 方向上的滚动偏移量
+  document.addEventListener('pjax:send', function () {
+    $('.header-nav-menu').removeClass('show');
+    if (CONFIG.pjax && CONFIG.pjax.avoidBanner) {
+      $('html').velocity('scroll', {
+        duration: 500,
+        offset: $('#header').height(),
+        easing: 'easeInOutCubic'
+      });
+    }
+
+    var loadingBarWidth = 20;
+    var MAX_LOADING_WIDTH = 95;
+
+    $('.loading-bar').addClass('loading');
+    $('.loading-bar__progress').css('width', loadingBarWidth + '%');
+    clearInterval(loadingTimer);
+    loadingTimer = setInterval(function () {
+      loadingBarWidth += 3;
+      if (loadingBarWidth > MAX_LOADING_WIDTH) {
+        loadingBarWidth = MAX_LOADING_WIDTH;
+      }
+      $('.loading-bar__progress').css('width', loadingBarWidth + '%');
+    }, 500);
+  }, false);
+
+  window.addEventListener('pjax:complete', function () {
+    clearInterval(loadingTimer);
+    $('.loading-bar__progress').css('width', '100%');
+    $('.loading-bar').removeClass('loading');
+    setTimeout(function () {
+      $('.loading-bar__progress').css('width', '0');
+    }, 400);
+    $('link[rel=prefetch], script[data-pjax-rm]').each(function () {
+      $(this).remove();
+    });
+    $('script[data-pjax], #pjax-reload script').each(function () {
+      $(this).parent().append($(this).remove());
+    });
+
+    if (Stun.utils.pjaxReloadBoot) {
+      Stun.utils.pjaxReloadBoot();
+    }
+    if (Stun.utils.pjaxReloadScroll) {
+      Stun.utils.pjaxReloadScroll();
+    }
+    if (Stun.utils.pjaxReloadSidebar) {
+      Stun.utils.pjaxReloadSidebar();
+    }
+    if (false) {
+      if (Stun.utils.pjaxReloadHeader) {
+        Stun.utils.pjaxReloadHeader();
+      }
+      if (Stun.utils.pjaxReloadScrollIcon) {
+        Stun.utils.pjaxReloadScrollIcon();
+      }
+      if (Stun.utils.pjaxReloadLocalSearch) {
+        Stun.utils.pjaxReloadLocalSearch();
+      }
+    }
+  }, false);
+}, false);</script><div id="pjax-reload"><script src="https://cdn.jsdelivr.net/npm/quicklink@1.0.1/dist/quicklink.umd.js"></script><script>function initQuicklink() {
+  quicklink({
+    timeout: '10000',
+    priority: true,
+    ignores: [uri => uri.includes('#'), uri => uri === 'https://bugordemo.github.io/2020/09/23/redis%E7%9A%84%E9%9B%86%E7%BE%A4%EF%BC%9A%E4%B8%BB%E4%BB%8E%E5%A4%8D%E5%88%B6%E3%80%81CAP/', /\/api\/?/,uri => uri.includes('.xml'),uri => uri.includes('.zip'),(uri, el) => el.hasAttribute('nofollow'),(uri, el) => el.hasAttribute('noprefetch')]
+  });
+}
+
+if (true || false) {
+  initQuicklink();
+} else {
+  window.addEventListener('DOMContentLoaded', initQuicklink, false);
+}</script><script src="https://cdn.jsdelivr.net/gh/sukkaw/busuanzi@latest/bsz.pure.mini.js" async></script></div><script src="/js/utils.js?v=2.1.1"></script><script src="/js/stun-boot.js?v=2.1.1"></script><script src="/js/scroll.js?v=2.1.1"></script><script src="/js/header.js?v=2.1.1"></script><script src="/js/sidebar.js?v=2.1.1"></script><script src="/live2dw/lib/L2Dwidget.min.js?094cbace49a39548bed64abff5988b05"></script><script>L2Dwidget.init({"model":{"jsonPath":"/live2dw/assets/koharu.model.json"},"display":{"position":"right","width":200,"height":350},"mobile":{"show":false},"log":false,"pluginJsPath":"lib/","pluginModelPath":"assets/","pluginRootPath":"live2dw/","tagMode":false});</script></body></html>

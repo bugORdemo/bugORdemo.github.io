@@ -1,0 +1,410 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="format-detection" content="telephone=no"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black"><link rel="icon" href="/assets/bilibili.jpg?v=2.1.1" type="image/png" sizes="32x32"><meta name="description" content="ZooKeeper简述       分布式协调服务 ZooKeeper是一种为分布式应用所设计的高可用、高性能且一致的开源协调服务，它提供了一项基本服务：分布式锁服务 由于ZooKeeper的开源特性，后来我们的开发者在分布式锁的基础上，摸索了出了其他的使用方法：配置维护、组服务、分布式消息队列、分布式通知&#x2F;协调等。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="ZooKeeper简述">
+<meta property="og:url" content="https://bugordemo.github.io/2020/09/23/ZooKeeper%E7%AE%80%E8%BF%B0/index.html">
+<meta property="og:site_name" content="DemoOrBug">
+<meta property="og:description" content="ZooKeeper简述       分布式协调服务 ZooKeeper是一种为分布式应用所设计的高可用、高性能且一致的开源协调服务，它提供了一项基本服务：分布式锁服务 由于ZooKeeper的开源特性，后来我们的开发者在分布式锁的基础上，摸索了出了其他的使用方法：配置维护、组服务、分布式消息队列、分布式通知&#x2F;协调等。">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://pic.downk.cc/item/5f6a9375160a154a678fe452.png">
+<meta property="og:image" content="https://pic.downk.cc/item/5f6a9375160a154a678fe456.png">
+<meta property="og:image" content="https://pic.downk.cc/item/5f6a9394160a154a678fee16.png">
+<meta property="og:image" content="https://pic.downk.cc/item/5f6a93b9160a154a678ffa55.png">
+<meta property="og:image" content="https://pic.downk.cc/item/5f6a93b9160a154a678ffa44.png">
+<meta property="og:image" content="https://pic.downk.cc/item/5f6a93b9160a154a678ffa46.png">
+<meta property="og:image" content="https://pic.downk.cc/item/5f6a93b9160a154a678ffa49.png">
+<meta property="og:image" content="https://pic.downk.cc/item/5f6a93b9160a154a678ffa4f.png">
+<meta property="article:published_time" content="2020-09-23T00:13:56.000Z">
+<meta property="article:modified_time" content="2020-09-23T00:17:44.031Z">
+<meta property="article:author" content="hyf">
+<meta property="article:tag" content="ZooKeeper">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://pic.downk.cc/item/5f6a9375160a154a678fe452.png"><title>ZooKeeper简述 | DemoOrBug</title><link ref="canonical" href="https://bugordemo.github.io/2020/09/23/ZooKeeper%E7%AE%80%E8%BF%B0/"><link rel="dns-prefetch" href="https://cdn.jsdelivr.net"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.12.1/css/all.min.css" type="text/css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.css" type="text/css"><link rel="stylesheet" href="/css/index.css?v=2.1.1"><script>var Stun = window.Stun || {};
+var CONFIG = {
+  root: '/',
+  algolia: undefined,
+  fontIcon: {"prompt":{"success":"fas fa-check-circle","info":"fas fa-arrow-circle-right","warning":"fas fa-exclamation-circle","error":"fas fa-times-circle"},"copyBtn":"fas fa-copy"},
+  sidebar: {"offsetTop":"20px","tocMaxDepth":5},
+  header: {"enable":true,"showOnPost":true,"scrollDownIcon":true},
+  postWidget: {"endText":true},
+  nightMode: {"enable":true},
+  back2top: {"enable":true},
+  codeblock: {"style":"carbon","highlight":"light","wordWrap":false},
+  reward: true,
+  fancybox: true,
+  zoomImage: {"gapAside":"20px"},
+  galleryWaterfall: {"colWidth":"220px","gapX":"10px"},
+  lazyload: true,
+  pjax: {"avoidBanner":true},
+  externalLink: {"icon":{"enable":true,"name":"fas fa-external-link-alt"}},
+  shortcuts: {"switchPost":true},
+  prompt: {"copyButton":"复制","copySuccess":"复制成功","copyError":"复制失败"},
+  sourcePath: {"js":"js","css":"css","images":"images"},
+};
+
+window.CONFIG = CONFIG;</script><meta name="generator" content="Hexo 5.2.0"></head><body><div class="container" id="container"><header class="header" id="header"><div class="header-inner"><nav class="header-nav header-nav--fixed"><div class="header-nav-inner"><div class="header-nav-menubtn"><i class="fas fa-bars"></i></div><div class="header-nav-menu"><div class="header-nav-menu-item"><a class="header-nav-menu-item__link" href="/"><span class="header-nav-menu-item__icon"><i class="fas fa-home"></i></span><span class="header-nav-menu-item__text">首页</span></a></div><div class="header-nav-menu-item"><a class="header-nav-menu-item__link" href="javascript:;" onclick="return false;"><span class="header-nav-menu-item__icon"><i class="fas fa-folder-open"></i></span><span class="header-nav-menu-item__text">文章</span></a><div class="header-nav-submenu"><div class="header-nav-submenu-item"><a class="header-nav-submenu-item__link" href="/archives/"><span class="header-nav-submenu-item__icon"><i class="fas fa-folder-open"></i></span><span class="header-nav-submenu-item__text">归档</span></a></div><div class="header-nav-submenu-item"><a class="header-nav-submenu-item__link" href="/categories/"><span class="header-nav-submenu-item__icon"><i class="fas fa-layer-group"></i></span><span class="header-nav-submenu-item__text">分类</span></a></div><div class="header-nav-submenu-item"><a class="header-nav-submenu-item__link" href="/tags/"><span class="header-nav-submenu-item__icon"><i class="fas fa-tags"></i></span><span class="header-nav-submenu-item__text">标签</span></a></div></div></div></div><div class="header-nav-mode"><div class="mode"><div class="mode-track"><span class="mode-track-moon"></span><span class="mode-track-sun"></span></div><div class="mode-thumb"></div></div></div></div></nav><div class="header-banner"><div class="header-banner-info"><div class="header-banner-info__title">DemoOrBug</div><div class="header-banner-info__subtitle">懒惰、急躁、傲慢 ———— 当代程序员美德</div></div><div class="header-banner-arrow"><div class="header-banner-arrow__icon"><i class="fas fa-angle-down"></i></div></div></div></div></header><main class="main" id="main"><div class="main-inner"><div class="content-wrap" id="content-wrap"><div class="content" id="content"><!-- Just used to judge whether it is an article page--><div id="is-post"></div><div class="post"><header class="post-header"><h1 class="post-title">ZooKeeper简述</h1><div class="post-meta"><span class="post-meta-item post-meta-item--createtime"><span class="post-meta-item__icon"><i class="far fa-calendar-plus"></i></span><span class="post-meta-item__info">发表于</span><span class="post-meta-item__value">2020-09-23</span></span><span class="post-meta-item post-meta-item--updatetime"><span class="post-meta-item__icon"><i class="far fa-calendar-check"></i></span><span class="post-meta-item__info">更新于</span><span class="post-meta-item__value">2020-09-23</span></span><span class="post-meta-item post-meta-item--wordcount"><span class="post-meta-item__icon"><i class="far fa-file-word"></i></span><span class="post-meta-item__info">字数统计</span><span class="post-meta-item__value">5.1k</span></span><span class="post-meta-item post-meta-item--readtime"><span class="post-meta-item__icon"><i class="far fa-clock"></i></span><span class="post-meta-item__info">阅读时长</span><span class="post-meta-item__value">29分</span></span><span class="post-meta-item post-meta-item--visitors"><span class="post-meta-item__icon"><i class="fas fa-eye"></i></span><span class="post-meta-item__info">阅读次数</span><span class="post-meta-item__value" id="busuanzi_value_page_pv"></span></span></div></header><div class="post-body">
+        <h1 id="ZooKeeper简述"   >
+          <a href="#ZooKeeper简述" class="heading-link"><i class="fas fa-link"></i></a>ZooKeeper简述</h1>
+      <p><strong>分布式协调服务</strong></p>
+<p>ZooKeeper是一种为分布式应用所设计的高可用、高性能且一致的开源<strong>协调服务</strong>，它提供了一项基本服务：<strong>分布式锁服务</strong></p>
+<p>由于ZooKeeper的开源特性，后来我们的开发者在分布式锁的基础上，摸索了出了其他的使用方法：<strong>配置维护、组服务、分布式消息队列、分布式通知/协调</strong>等。</p>
+<a id="more"></a>
+
+<p>ZooKeeper性能上的特点决定了它能够用在大型的、分布式的系统当中。从可靠性方面来说，它并不会因为一个节点的错误而崩溃。</p>
+<p>除此之外，它严格的序列访问控制意味着复杂的控制原语可以应用在客户端上。</p>
+<p>ZooKeeper在一致性、可用性、容错性的保证，也是ZooKeeper的成功之处，它获得的一切成功都与它采用的协议——Zab协议是密不可分的</p>
+<p>
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="https://pic.downk.cc/item/5f6a9375160a154a678fe452.png"  alt="41362cd95c66358468e7ca23382281f5.png">
+      </p>
+
+        <h2 id="ZooKeeper数据模型"   >
+          <a href="#ZooKeeper数据模型" class="heading-link"><i class="fas fa-link"></i></a>ZooKeeper数据模型</h2>
+      
+        <h3 id="ZooKeeper数据模型-1"   >
+          <a href="#ZooKeeper数据模型-1" class="heading-link"><i class="fas fa-link"></i></a>ZooKeeper数据模型</h3>
+      <p>ZooKeeper拥有一个层次的命名空间，和标准的文件系统非常相似，都是采用这种树形层次结构，ZooKeeper树中的每个节点被称为Znode，ZooKeeper树中的每个节点可以拥有子节点<br>
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="https://pic.downk.cc/item/5f6a9375160a154a678fe456.png"  alt="b14ec5b65a54349168a086e6fd425be0.png">
+      </p>
+<ol>
+<li><p>引用方式<br> Zonde通过路径引用，如同Unix中的文件路径。路径必须是<strong>绝对的</strong>，因此他们必须由<strong>斜杠字符来开头</strong>。除此以外，他们必须是<strong>唯一的</strong>，也就是说每一个路径只有一个表示，因此这些路径不能改变。在ZooKeeper中，路径由Unicode字符串组成，并且有一些限制。</p>
+<p> 字符串”/zookeeper”用以保存管理信息，比如关键配额信息。</p>
+</li>
+<li><p>Znode结构<br> ZooKeeper命名空间中的Znode，兼具文件和目录两种特点。既像文件一样维护着数据、元信息、ACL、时间戳等数据结构，又像目录一样可以作为路径标识的一部分。每个节点称为一个Znode。 每个Znode由3部分组成:</p>
+<ol>
+<li><p>stat：此为状态信息, 描述该Znode的版本, 权限等信息</p>
+</li>
+<li><p>data：与该Znode关联的数据</p>
+</li>
+<li><p>children：该Znode下的子节点</p>
+<p>ZooKeeper虽然可以关联一些数据，但<strong>不要把zookeeper当数据库用</strong>，它用来<strong>管理调度数据</strong>，比如分布式应用中的配置文件信息、状态信息、汇集位置等等。这些数据的共同特性就是它们都是<strong>很小</strong>的数据，通常以KB为大小单位。</p>
+<p>ZooKeeper的服务器和客户端都被设计为严格检查并限制每个Znode的数据大小至<strong>多1M</strong>，但常规使用中应该远小于此值。</p>
+</li>
+</ol>
+</li>
+<li><p>数据访问<br> ZooKeeper中的每个节点存储的数据要被<strong>原子性</strong>的操作。也就是说读操作将获取与节点相关的所有数据，写操作也将替换掉节点的所有数据。</p>
+<p> 另外，每一个节点都拥有自己的ACL(访问控制列表)，这个列表规定了用户的权限，即限定了特定用户对目标节点可以执行的操作。</p>
+</li>
+<li><p>节点类型<br> ZooKeeper中的节点有两种，分别为<strong>临时节点和永久节点</strong>。节点的类型在创建时即被确定，并且不能改变。</p>
+<ol>
+<li><p>临时节点：该节点的生命周期依赖于创建它们的会话。一旦会话(Session)结束，临时节点将被自动删除，当然可以也可以手动删除。虽然每个临时的Znode都会绑定到一个客户端会话，但他们对所有的客户端还是可见的。另外，ZooKeeper的<strong>临时节点不允许拥有子节点</strong>。</p>
+<ol start="2">
+<li>永久节点：该节点的生命周期不依赖于会话，并且只有在客户端显示执行删除操作的时候，他们才能被删除。</li>
+</ol>
+</li>
+</ol>
+</li>
+<li><p>顺序节点<br>当创建Znode的时候，用户可以请求在ZooKeeper的路径结尾添加一个递增的计数。这个计数对于此节点的父节点来说是唯一的，它的格式为”%10d”(10位数字，没有数值的数位用0补充，例如”0000000001”)。当计数值大于232-1时，计数器将溢出。</p>
+</li>
+<li><p>watch<br> 客户端可以在节点上设置watch，我们称之为监视器。当节点状态发生改变时(Znode的增、删、改)将会触发watch所对应的操作。</p>
+<p> 当watch被触发时，ZooKeeper将会向客户端发送且仅发送一条通知，因为watch只能被触发一次，这样可以减少网络流量。</p>
+</li>
+</ol>
+
+        <h3 id="ZooKeeper中的时间"   >
+          <a href="#ZooKeeper中的时间" class="heading-link"><i class="fas fa-link"></i></a>ZooKeeper中的时间</h3>
+      <p>ZooKeeper有多种记录时间的形式，其中包含以下几个主要属性：</p>
+<ol>
+<li><p>Zxid<br> 每一个使节点状态改变的操作，都会使节点接收到一个Zxid格式的时间戳，并且这个时间戳<strong>全局有序</strong>。也就是说，每个对节点的改变都将产生一个唯一的Zxid。</p>
+<p> 如果Zxid1的值小于Zxid2的值，那么Zxid1所对应的事件发生在Zxid2所对应的事件之前（谁大谁后发生）。</p>
+<p> 实际上，ZooKeeper的每个节点维护者三个Zxid值，为别为：cZxid、mZxid、pZxid。</p>
+<ol>
+<li><p>cZxid： 对应为该节点的创建时间（Create）</p>
+</li>
+<li><p>mZxid：对应该节点的最近一次修改的时间（Mofify），与其子节点无关</p>
+</li>
+<li><p>pZxid：是与该节点的子节点（或该节点）的最近一次创建、删除的时间戳对应<br> 注：只与本节点 / 该节点的子节点有关，与孙子节点无关。</p>
+<p>Zxid是一个64为的数字，它高32位是epoch用来标识leader关系是否改变，每次一个leader被选出来，它都会有一个 新的epoch。低32位是个<strong>递增计数</strong>。 </p>
+</li>
+</ol>
+</li>
+<li><p>版本号<br> 对节点的每一个操作都将致使这个节点的版本号增加。每个节点维护三个版本号，他们分别为：</p>
+<ol>
+<li>version：节点数据版本号</li>
+<li>cversion：子节点版本号</li>
+<li>aversion：节点所拥有的ACL版本号</li>
+</ol>
+</li>
+</ol>
+<p>
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="https://pic.downk.cc/item/5f6a9394160a154a678fee16.png"  alt="5c58466c2019d1b72122f9be4729e981.png">
+      </p>
+
+        <h2 id="简单操作"   >
+          <a href="#简单操作" class="heading-link"><i class="fas fa-link"></i></a>简单操作</h2>
+      <p>create：创建Znode，父Znode必须存在<br>delete：删除Znode，Znode没有子节点<br>exists：测试Znode是否存在，并获取元数据<br>getACL/setACL：获取/设置ACL<br>getChildren：获取Znode所有子节点列表<br>getData/setData：获取/设置数据<br>sync：是客户端的Znode识图与ZooKeeper同步</p>
+<p>更新ZooKeeper操作是有限制的。<strong>delete或setData必须明确要更新的Znode的版本号</strong>，我们可以调用exists找到。如果版本号不匹配，更新将会失败。</p>
+<p>更新ZooKeeper操作是<strong>非阻塞式</strong>的。因此客户端如果失去了一个更新(由于另一个进程在同时更新这个Znode)，他可以在不阻塞其他进程执行的情况下，选择重新尝试或进行其他操作。</p>
+<ol>
+<li>连接到Zookeeper服务<figure class="highlight plain"><div class="table-container"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">zkCli.sh -server localhost:2181</span><br></pre></td></tr></table></div></figure></li>
+<li>使用ls命令查看当前Zookeeper中所包含的内容：ls /<figure class="highlight plain"><div class="table-container"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">[zk: localhost:2181(CONNECTED) 1] ls &#x2F;</span><br><span class="line">[zookeeper]</span><br><span class="line">[zk: localhost:2181(CONNECTED) 2]</span><br></pre></td></tr></table></div></figure></li>
+<li>创建一个新的Znode节点”zk”，以及和它相关字符，执行命令：create /zk myData<figure class="highlight plain"><div class="table-container"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">[zk: localhost:2181(CONNECTED) 2] create &#x2F;zk myData</span><br><span class="line">Created &#x2F;zk</span><br><span class="line">[zk: localhost:2181(CONNECTED) 3] ls &#x2F;</span><br><span class="line">[zk, zookeeper]</span><br></pre></td></tr></table></div></figure></li>
+<li>使用get命令来确认第二步中所创建的Znode是否包含创建的字符串，执行命令：get /zk<figure class="highlight plain"><div class="table-container"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">[zk: localhost:2181(CONNECTED) 4] get &#x2F;zk</span><br><span class="line">myData</span><br><span class="line">cZxid &#x3D; 0x500000006</span><br><span class="line">ctime &#x3D; Fri Sep 18 03:54:20 PDT 2020</span><br><span class="line">mZxid &#x3D; 0x500000006</span><br><span class="line">mtime &#x3D; Fri Sep 18 03:54:20 PDT 2014</span><br><span class="line">pZxid &#x3D; 0x500000006</span><br><span class="line">cversion &#x3D; 0</span><br><span class="line">dataVersion &#x3D; 0</span><br><span class="line">aclVersion &#x3D; 0</span><br><span class="line">ephemeralOwner &#x3D; 0x0</span><br><span class="line">dataLength &#x3D; 6</span><br><span class="line">numChildren &#x3D; 0****</span><br></pre></td></tr></table></div></figure></li>
+<li>通过set命令来对zk所关联的字符串进行设置，执行命令：set /zk hao<figure class="highlight plain"><div class="table-container"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line">[zk: localhost:2181(CONNECTED) 5] set &#x2F;zk hao</span><br><span class="line">cZxid &#x3D; 0x500000006</span><br><span class="line">ctime &#x3D; Fri Sep 18 03:54:20 PDT 2014</span><br><span class="line">mZxid &#x3D; 0x500000007</span><br><span class="line">mtime &#x3D; Fri Sep 18 03:55:50 PDT 2014</span><br><span class="line">pZxid &#x3D; 0x500000006</span><br><span class="line">cversion &#x3D; 0</span><br><span class="line">dataVersion &#x3D; 1</span><br><span class="line">aclVersion &#x3D; 0</span><br><span class="line">ephemeralOwner &#x3D; 0x0</span><br><span class="line">dataLength &#x3D; 9</span><br><span class="line">numChildren &#x3D; 0</span><br></pre></td></tr></table></div></figure></li>
+<li>将刚才创建的Znode删除，执行命令：delete /zk，rmr /zk<figure class="highlight plain"><div class="table-container"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">[zk: localhost:2181(CONNECTED) 7] delete &#x2F;zk　</span><br><span class="line"># 整个节点全删除  注意：delete只能删除不包含子节点的节点，如果要删除的节点包含子节点，使用rmr命令</span><br><span class="line">[zk: localhost:2181(CONNECTED) 7] rmr &#x2F;zk</span><br></pre></td></tr></table></div></figure>
+
+</li>
+</ol>
+
+        <h2 id="watch"   >
+          <a href="#watch" class="heading-link"><i class="fas fa-link"></i></a>watch</h2>
+      <p>ZooKeeper可以为所有的读操作设置watch，这些读操作包括：exists()、getChildren()及getData()。</p>
+<p>watch事件是<strong>一次性</strong>的触发器，当watch的对象<strong>状态发生改变时</strong>，将会触发此对象上watch所对应的事件。</p>
+<p>watch事件将被异步地发送给客户端，并且ZooKeeper为watch机制提供了有序的一致性保证。理论上，客户端接收watch事件的时间要快于其看到watch对象状态变化的时间。</p>
+
+        <h3 id="watch类型"   >
+          <a href="#watch类型" class="heading-link"><i class="fas fa-link"></i></a>watch类型</h3>
+      <p>ZooKeeper所管理的watch可以分为两类：</p>
+<ol>
+<li>data  watches：getData和exists负责设置数据watch</li>
+<li>child watches：getChildren负责设置孩子watch</li>
+</ol>
+<p>可以通过操作返回的数据来设置不同的watch：</p>
+<ol>
+<li>getData和exists：返回关于节点的数据信息</li>
+<li>getChildren：返回孩子列表</li>
+</ol>
+<p>因此</p>
+<ol>
+<li><p>一个成功的setData操作将触发Znode的data watch</p>
+</li>
+<li><p>一个成功的create操作将触发Znode的data watch以及child watch</p>
+</li>
+<li><p>一个成功的delete操作将触发Znode的data watch以及child watch</p>
+</li>
+</ol>
+
+        <h3 id="watch注册与处触发"   >
+          <a href="#watch注册与处触发" class="heading-link"><i class="fas fa-link"></i></a>watch注册与处触发</h3>
+      <ol>
+<li><p>exists操作上的watch，在被监视的Znode创建、删除或数据更新时被触发。</p>
+</li>
+<li><p>getData操作上的watch，在被监视的Znode删除或数据更新时被触发。在被创建时不能被触发，因为只有Znode一定存在，getData操作才会成功。</p>
+</li>
+<li><p>getChildren操作上的watch，在被监视的Znode的子节点创建或删除，或是这个Znode自身被删除时被触发。可以通过查看watch事件类型来区分是Znode，还是他的子节点被删除：NodeDelete表示Znode被删除，NodeDeletedChanged表示子节点被删除。</p>
+</li>
+</ol>
+
+        <h3 id="注意"   >
+          <a href="#注意" class="heading-link"><i class="fas fa-link"></i></a>注意</h3>
+      <p>Zookeeper的watch实际上要处理两类事件：</p>
+<ol>
+<li>连接状态事件(type=None, path=null)<br> 这类事件不需要注册，也不需要我们连续触发，我们只要处理就行了。</li>
+<li>节点事件<br> 节点的建立，删除，数据的修改。它是one time trigger（一次性触发器），我们需要不停的注册触发，还可能发生事件丢失的情况。</li>
+</ol>
+<p>上面2类事件都在Watch中处理，也就是重载的process(Event event)<br>节点事件的触发，通过函数exists，getData或getChildren来处理这类函数，有双重作用：</p>
+<ol>
+<li>注册触发事件</li>
+<li>函数本身的功能<br>函数的本身的功能又可以用异步的回调函数来实现,重载processResult()过程中处理函数本身的的功能。</li>
+</ol>
+
+        <h2 id="Zab协议-原子广播"   >
+          <a href="#Zab协议-原子广播" class="heading-link"><i class="fas fa-link"></i></a>Zab协议(原子广播)</h2>
+      <p>Zab协议是为分布式协调服务Zookeeper专门设计的一种 支持崩溃恢复 的 原子广播协议 ，是Zookeeper保证数据一致性的核心算法。</p>
+<p>在Zookeeper中主要依赖Zab协议来实现数据一致性，基于该协议，zk实现了一种主备模型（即Leader和Follower模型）的系统架构来保证集群中各个副本之间数据的一致性。</p>
+<p>这里的主备系统架构模型，就是指只有一台客户端（Leader）负责处理外部的写事务请求，然后Leader客户端将数据同步到其他Follower节点。</p>
+<p>特性：</p>
+<ol>
+<li>Zab 协议需要确保那些<strong>已经在 Leader 服务器上提交（Commit）的事务最终被所有的服务器提交</strong></li>
+<li>Zab 协议需要确保<strong>丢弃那些只在 Leader 上被提出而没有被提交的事务</strong><br>
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="https://pic.downk.cc/item/5f6a93b9160a154a678ffa55.png"  alt="825b7933b3d1f5d59897287fdd24d09f.png">
+      </li>
+</ol>
+
+        <h3 id="Zab-协议实现的作用"   >
+          <a href="#Zab-协议实现的作用" class="heading-link"><i class="fas fa-link"></i></a>Zab 协议实现的作用</h3>
+      <ol>
+<li><p>使用一个单一的主进程（Leader）来接收并处理客户端的事务请求（也就是写请求），并采用了Zab的原子广播协议，将服务器数据的状态变更以事务proposal （事务提议）的形式广播到所有的副本（Follower）进程上去</p>
+</li>
+<li><p>保证一个全局的变更序列被顺序引用。<br> Zookeeper是一个树形结构，很多操作都要先检查才能确定是否可以执行，比如P1的事务t1可能是创建节点”/a”，t2可能是创建节点”/a/bb”，只有先创建了父节点”/a”，才能创建子节点”/a/b”。<br> 为了保证这一点，Zab要保证同一个Leader发起的事务要按顺序被应用，同时还要保证只有先前Leader的事务被应用之后，新选举出来的Leader才能再次发起事务</p>
+</li>
+<li><p>当主进程出现异常的时候，整个zk集群依旧能正常工作。</p>
+</li>
+</ol>
+
+        <h3 id="Zab协议原理"   >
+          <a href="#Zab协议原理" class="heading-link"><i class="fas fa-link"></i></a>Zab协议原理</h3>
+      <p>Zab协议要求每个 Leader 都要经历三个阶段：发现，同步，广播。</p>
+<ul>
+<li>发现：要求zookeeper集群必须选举出一个 Leader 进程，同时 Leader 会维护一个 Follower 可用客户端列表。将来客户端可以和这些 Follower节点进行通信。</li>
+<li>同步：Leader 要负责将本身的数据与 Follower 完成同步，做到多副本存储。这样也是提现了CAP中的高可用和分区容错。Follower将队列中未处理完的请求消费完成后，写入本地事务日志中。</li>
+<li>广播：Leader 可以接受客户端新的事务提案请求，将新的提案请求广播给所有的 Follower。</li>
+</ul>
+<hr>
+<p>Zab协议的核心：<strong>定义了事务请求的处理方式</strong></p>
+<ol>
+<li>所有的事务请求必须由一个全局唯一的服务器来协调处理，这样的服务器被叫做 <strong>Leader</strong>服务器。其他剩余的服务器则是 Follower服务器。</li>
+<li>Leader服务器负责将一个客户端事务请求，转换成一个事务提案，并将该提案分发给集群中所有的Follower服务器，也就是向所有Follower节点发送数据广播请求（或数据复制）</li>
+<li>分发之后Leader服务器需要等待所有Follower服务器的反馈（Ack请求），在Zab协议中，只要<strong>超过半数</strong>的Follower服务器进行了正确的反馈后（也就是收到半数以上的Follower的Ack请求），那么 Leader 就会再次向所有的 Follower服务器发送Commit消息，要求其将上一个 事务提案进行提交。</li>
+</ol>
+<ul>
+<li>一句话：Leader统提案，半数以上Follower同意就执行</li>
+</ul>
+<p>注意：除了Leader和Follower之外还有一个Observer，Observer可以接受客户端的连接，并将写请求转发给Leader节点，但是bserver不参加投票</p>
+
+        <h3 id="Zab协议内容"   >
+          <a href="#Zab协议内容" class="heading-link"><i class="fas fa-link"></i></a>Zab协议内容</h3>
+      <p>Zab 协议包括两种基本的模式：<strong>崩溃恢复</strong> 和 <strong>消息广播</strong></p>
+<p>当整个集群启动过程中，或者当 Leader 服务器出现网络中断、崩溃退出或重启等异常时，Zab协议就会进入<strong>崩溃恢复模式</strong>，选举产生新的Leader。当选举产生了新的 Leader，同时集群中有<strong>过半的</strong>机器与该 Leader 服务器<strong>完成了状态同步</strong>（即数据同步）之后，Zab协议就会退出崩溃恢复模式，进入消息广播模式。</p>
+<p>这时，如果有一台遵守Zab协议的服务器加入集群，因为此时集群中已经存在一个Leader服务器在广播消息，那么该新加入的服务器自动进入恢复模式：找到Leader服务器，并且完成数据同步。同步完成后，作为新的Follower一起参与到消息广播流程中。</p>
+<p>在整个消息广播中，Leader会将每一个事务请求转换成对应的提案来进行广播，并且在广播之前，Leader服务器会首先为这个事务提案分配一个<strong>全局单递增的唯一ID</strong>，称之为事务ID（即zxid），由于Zab协议需要保证每一个消息的严格的顺序关系，因此必须将每一个提案按照其zxid的先后顺序进行排序和处理。</p>
+
+        <h4 id="消息广播"   >
+          <a href="#消息广播" class="heading-link"><i class="fas fa-link"></i></a>消息广播</h4>
+      <p>在zookeeper集群中，数据副本的传递策略就是采用消息广播模式.</p>
+<p>Zab协议中 Leader 等待 Follower 的ACK反馈消息是指“只要<strong>半数以上</strong>的Follower成功反馈即可，不需要收到全部Follower反馈”</p>
+<p>zookeeper 采用 Zab 协议的核心，就是只要有一台服务器提交了 Proposal，就要确保所有的服务器最终都能正确提交 Proposal。这也是 CAP/BASE 实现最终一致性的一个体现。</p>
+<p>Leader 服务器与每一个 Follower 服务器之间都维护了一个单独的<strong>FIFO消息队列</strong>进行收发消息，使用队列消息可以做到异步解耦。 Leader 和 Follower 之间只需要往队列中发消息即可。如果使用同步的方式会引起阻塞，性能要下降很多。</p>
+<p>
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="https://pic.downk.cc/item/5f6a93b9160a154a678ffa44.png"  alt="7a89f2824c5afa2da102f1fa4f582ac0.png">
+      </p>
+
+        <h4 id="崩溃恢复"   >
+          <a href="#崩溃恢复" class="heading-link"><i class="fas fa-link"></i></a>崩溃恢复</h4>
+      <p>一旦 Leader 服务器出现崩溃或者由于网络原因导致 Leader 服务器失去了与过半 Follower 的联系，那么就会进入崩溃恢复模式。</p>
+<p>崩溃恢复主要包括两部分：Leader选举 和 数据恢复</p>
+<p>Zab 协议崩溃恢复要求满足以下两个要求：</p>
+<ol>
+<li>确保已经被 Leader 提交的 Proposal 必须最终被所有的 Follower 服务器提交</li>
+<li>确保丢弃已经被 Leader 提出的但是没有被提交的 Proposal</li>
+</ol>
+<p>所以<br>Zab协议需要保证选举出来的Leader需要满足以下条件：</p>
+<ol>
+<li>新选举出来的 Leader 不能包含未提交的 Proposal 。即新选举的 Leader 必须都是已经提交了 Proposal 的 Follower 服务器节点</li>
+<li>新选举的 Leader 节点中含有最大的 zxid </li>
+</ol>
+<p>Zab 如何数据同步？</p>
+<ol>
+<li><p>完成 Leader 选举后（新的 Leader 具有最高的zxid），在正式开始工作之前（接收事务请求，然后提出新的 Proposal），Leader 服务器会首先确认事务日志中的所有的 Proposal 是否已经被集群中过半的服务器 Commit。</p>
+</li>
+<li><p>Leader 服务器需要确保所有的 Follower 服务器能够接收到每一条事务的 Proposal ，并且能将所有已经提交的事务 Proposal 应用到内存数据中。等到 Follower 将所有尚未同步的事务 Proposal 都从 Leader 服务器上同步过来并且应用到内存数据中以后，Leader 才会把该 Follower 加入到真正可用的 Follower 列表中。</p>
+</li>
+</ol>
+<p>当一个包含了上一个 Leader 周期中尚未提交过的事务 Proposal 的服务器启动时，当这台机器加入集群中，以 Follower 角色连上 Leader 服务器后，Leader 服务器会根据自己服务器上最后提交的 Proposal 来和 Follower 服务器的 Proposal 进行比对，比对的结果肯定是 Leader 要求 Follower 进行一个回退操作，回退到一个确实已经被集群中过半机器 Commit 的最新 Proposal。</p>
+<p>成为 Leader 的条件：</p>
+<ol>
+<li>选 epoch 最大的</li>
+<li>若 epoch 相等，选 zxid 最大的</li>
+<li>若 epoch 和 zxid 相等，选择 server_id 最大的（zoo.cfg中的myid）</li>
+</ol>
+
+        <h2 id="应用"   >
+          <a href="#应用" class="heading-link"><i class="fas fa-link"></i></a>应用</h2>
+      
+        <h3 id="通过对集群进行Master选举，来解决分布式系统中的单点故障"   >
+          <a href="#通过对集群进行Master选举，来解决分布式系统中的单点故障" class="heading-link"><i class="fas fa-link"></i></a>通过对集群进行Master选举，来解决分布式系统中的单点故障</h3>
+      <p>通常分布式系统采用主从模式，就是一个主控机连接多个处理节点。主节点负责分发任务，从节点负责处理任务，当我们的主节点发生故障时，那么整个系统就都瘫痪了，这种故障就是单点故障。</p>
+<hr>
+<p>在引入了Zookeeper以后我们启动了两个主节点，”主节点-A”和”主节点-B”他们启动以后，都向ZooKeeper去注册一个节点。</p>
+<p>我们假设”主节点-A”锁注册地节点是”master-00001”，”主节点-B”注册的节点是”master-00002”，注册完以后进行选举，编号最小的节点将在选举中获胜获得锁成为主节点，也就是我们的”主节点-A”将会获得锁成为主节点，然后”主节点-B”将被阻塞成为一个备用节点。那么，通过这种方式就完成了对两个Master进程的调度。</p>
+<p>
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="https://pic.downk.cc/item/5f6a93b9160a154a678ffa46.png"  alt="f47b0b262860510edc1033f44d83eef3.png">
+      </p>
+<p>如果”主节点-A”挂了，这时候他所注册的节点将被自动删除，ZooKeeper会自动感知节点的变化，然后再次发出选举，这时候”主节点-B”将在选举中获胜，替代”主节点-A”成为主节点。</p>
+<p>
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="https://pic.downk.cc/item/5f6a93b9160a154a678ffa49.png"  alt="f38de3cc2959b06cddb54f6ece6d08d1.png">
+      </p>
+<p>如果主节点恢复了，他会再次向ZooKeeper注册一个节点，这时候他注册的节点将会是”master-00003”，ZooKeeper会感知节点的变化再次发动选举，这时候”主节点-B”在选举中会再次获胜继续担任”主节点”，”主节点-A”会担任备用节点。<br>
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="https://pic.downk.cc/item/5f6a93b9160a154a678ffa4f.png"  alt="e01900d9810a739219665d627b304a0b.png">
+      </p>
+</div><footer class="post-footer"><div class="post-ending ending"><div class="ending__text">------ 本文结束，感谢您的阅读 ------</div></div><div class="post-copyright copyright"><div class="copyright-author"><span class="copyright-author__name">本文作者: </span><span class="copyright-author__value"><a href="https://bugordemo.github.io">hyf</a></span></div><div class="copyright-link"><span class="copyright-link__name">本文链接: </span><span class="copyright-link__value"><a href="https://bugordemo.github.io/2020/09/23/ZooKeeper%E7%AE%80%E8%BF%B0/">https://bugordemo.github.io/2020/09/23/ZooKeeper%E7%AE%80%E8%BF%B0/</a></span></div><div class="copyright-notice"><span class="copyright-notice__name">版权声明: </span><span class="copyright-notice__value">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" rel="external nofollow" target="_blank">BY-NC-SA</a> 许可协议。转载请注明出处！</span></div></div><div class="post-tags"><span class="post-tags-item"><span class="post-tags-item__icon"><i class="fas fa-tag"></i></span><a class="post-tags-item__link" href="https://bugordemo.github.io/tags/ZooKeeper/">ZooKeeper</a></span></div><div class="post-reward reward"><div class="reward-button">请我喝杯咖啡~</div><div class="reward-qrcode"><span class="reward-qrcode-alipay"><img class="reward-qrcode-alipay__img" src="/assets/alipay.jpg"><div class="reward-qrcode-alipay__text">支付宝打赏</div></span><span class="reward-qrcode-wechat"><img class="reward-qrcode-wechat__img" src="/assets/wechat.jpg"><div class="reward-qrcode-wechat__text">微信打赏</div></span></div></div><nav class="post-paginator paginator"><div class="paginator-next"><a class="paginator-next__link" href="/2020/09/23/%E4%B8%80%E4%BA%9BRedis%E9%97%AE%E9%A2%98/"><span class="paginator-prev__text">一些Redis问题</span><span class="paginator-next__icon"><i class="fas fa-angle-right"></i></span></a></div></nav></footer></div></div></div><div class="sidebar-wrap" id="sidebar-wrap"><aside class="sidebar" id="sidebar"><div class="sidebar-nav"><span class="sidebar-nav-toc current">文章目录</span><span class="sidebar-nav-ov">站点概览</span></div><section class="sidebar-toc"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#ZooKeeper%E6%95%B0%E6%8D%AE%E6%A8%A1%E5%9E%8B"><span class="toc-number">1.</span> <span class="toc-text">
+          ZooKeeper数据模型</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#ZooKeeper%E6%95%B0%E6%8D%AE%E6%A8%A1%E5%9E%8B-1"><span class="toc-number">1.1.</span> <span class="toc-text">
+          ZooKeeper数据模型</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#ZooKeeper%E4%B8%AD%E7%9A%84%E6%97%B6%E9%97%B4"><span class="toc-number">1.2.</span> <span class="toc-text">
+          ZooKeeper中的时间</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E7%AE%80%E5%8D%95%E6%93%8D%E4%BD%9C"><span class="toc-number">2.</span> <span class="toc-text">
+          简单操作</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#watch"><span class="toc-number">3.</span> <span class="toc-text">
+          watch</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#watch%E7%B1%BB%E5%9E%8B"><span class="toc-number">3.1.</span> <span class="toc-text">
+          watch类型</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#watch%E6%B3%A8%E5%86%8C%E4%B8%8E%E5%A4%84%E8%A7%A6%E5%8F%91"><span class="toc-number">3.2.</span> <span class="toc-text">
+          watch注册与处触发</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%B3%A8%E6%84%8F"><span class="toc-number">3.3.</span> <span class="toc-text">
+          注意</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#Zab%E5%8D%8F%E8%AE%AE-%E5%8E%9F%E5%AD%90%E5%B9%BF%E6%92%AD"><span class="toc-number">4.</span> <span class="toc-text">
+          Zab协议(原子广播)</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Zab-%E5%8D%8F%E8%AE%AE%E5%AE%9E%E7%8E%B0%E7%9A%84%E4%BD%9C%E7%94%A8"><span class="toc-number">4.1.</span> <span class="toc-text">
+          Zab 协议实现的作用</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Zab%E5%8D%8F%E8%AE%AE%E5%8E%9F%E7%90%86"><span class="toc-number">4.2.</span> <span class="toc-text">
+          Zab协议原理</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Zab%E5%8D%8F%E8%AE%AE%E5%86%85%E5%AE%B9"><span class="toc-number">4.3.</span> <span class="toc-text">
+          Zab协议内容</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%B6%88%E6%81%AF%E5%B9%BF%E6%92%AD"><span class="toc-number">4.3.1.</span> <span class="toc-text">
+          消息广播</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%B4%A9%E6%BA%83%E6%81%A2%E5%A4%8D"><span class="toc-number">4.3.2.</span> <span class="toc-text">
+          崩溃恢复</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%BA%94%E7%94%A8"><span class="toc-number">5.</span> <span class="toc-text">
+          应用</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%80%9A%E8%BF%87%E5%AF%B9%E9%9B%86%E7%BE%A4%E8%BF%9B%E8%A1%8CMaster%E9%80%89%E4%B8%BE%EF%BC%8C%E6%9D%A5%E8%A7%A3%E5%86%B3%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F%E4%B8%AD%E7%9A%84%E5%8D%95%E7%82%B9%E6%95%85%E9%9A%9C"><span class="toc-number">5.1.</span> <span class="toc-text">
+          通过对集群进行Master选举，来解决分布式系统中的单点故障</span></a></li></ol></li></ol></section><!-- ov = overview--><section class="sidebar-ov hide"><div class="sidebar-ov-author"><div class="sidebar-ov-author__avatar"><img class="sidebar-ov-author__avatar_img" src="https://wx2.sbimg.cn/2020/09/22/GJ1jY.md.jpg" alt="avatar"></div><p class="sidebar-ov-author__text">write code and love life</p></div><div class="sidebar-ov-social"><a class="sidebar-ov-social-item" href="https://github.com/bugORdemo" target="_blank" rel="noopener" data-popover="Github" data-popover-pos="up"><span class="sidebar-ov-social-item__icon"><i class="fab fa-github"></i></span></a><a class="sidebar-ov-social-item" href="NullPointerEXC-H" target="_blank" rel="noopener" data-popover="微信" data-popover-pos="up"><span class="sidebar-ov-social-item__icon"><i class="fab fa-weixin"></i></span></a><a class="sidebar-ov-social-item" href="798968439" target="_blank" rel="noopener" data-popover="QQ" data-popover-pos="up"><span class="sidebar-ov-social-item__icon"><i class="fab fa-qq"></i></span></a></div><div class="sidebar-ov-cc"><a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank" rel="noopener" data-popover="知识共享许可协议" data-popover-pos="up"><img src="/images/cc-by-nc-sa.svg"></a></div></section><div class="sidebar-reading"><div class="sidebar-reading-info"><span class="sidebar-reading-info__text">你已阅读了 </span><span class="sidebar-reading-info__num">0</span></div><div class="sidebar-reading-line"></div></div></aside></div><div class="clearfix"></div></div></main><footer class="footer" id="footer"><div class="footer-inner"><div><span>Copyright © 2020</span><span class="footer__icon"><i class="fas fa-heart"></i></span><span><a href="https://github.com/bugORdemo" rel="noopener" target="_blank">bugORdemo</a></span></div><div><span>由 <a href="http://hexo.io/" title="Hexo" target="_blank" rel="noopener">Hexo</a> 强力驱动</span><span> v5.2.0</span><span class="footer__devider">|</span><span>主题 - <a href="https://github.com/liuyib/hexo-theme-stun/" title="Stun" target="_blank" rel="noopener">Stun</a></span><span> v2.1.1</span></div><div class="busuanzi"><span class="busuanzi-siteuv"><span class="busuanzi-siteuv__icon"><i class="fas fa-user"></i></span><span class="busuanzi-siteuv__info">访问人数</span><span class="busuanzi-siteuv__value" id="busuanzi_value_site_uv"></span></span><span class="busuanzi-sitepv"><span class="busuanzi-siteuv__icon"><i class="fas fa-eye"></i></span><span class="busuanzi-siteuv__info">浏览总量</span><span class="busuanzi-siteuv__value" id="busuanzi_value_site_pv"></span></span></div></div></footer><div class="loading-bar" id="loading-bar"><div class="loading-bar__progress"></div></div><div class="back2top" id="back2top"><span class="back2top__icon"><i class="fas fa-rocket"></i></span></div></div><script src="https://cdn.jsdelivr.net/npm/jquery@v3.4.1/dist/jquery.min.js"></script><script src="https://cdn.jsdelivr.net/npm/velocity-animate@1.5.2/velocity.min.js"></script><script src="https://cdn.jsdelivr.net/npm/velocity-animate@1.5.2/velocity.ui.min.js"></script><script src="https://cdn.jsdelivr.net/npm/ribbon.js@latest/dist/ribbon.min.js" size="120" alpha="0.6" zIndex="-1"></script><script src="https://cdn.jsdelivr.net/gh/fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.js"></script><script src="https://cdn.jsdelivr.net/npm/masonry-layout@4.2.2/dist/masonry.pkgd.min.js"></script><script src="https://cdn.jsdelivr.net/npm/lazyload@2.0.0-rc.2/lazyload.min.js"></script><script src="https://cdn.jsdelivr.net/npm/pjax@latest/pjax.min.js"></script><script>window.addEventListener('DOMContentLoaded', function () {
+  var pjax = new Pjax({"selectors":["head title","#main",".pjax-reload"],"history":true,"scrollTo":false,"scrollRestoration":false,"cacheBust":false,"debug":false,"currentUrlFullReload":false,"timeout":0});
+  // 加载进度条的计时器
+  var loadingTimer = null;
+
+  // 重置页面 Y 方向上的滚动偏移量
+  document.addEventListener('pjax:send', function () {
+    $('.header-nav-menu').removeClass('show');
+    if (CONFIG.pjax && CONFIG.pjax.avoidBanner) {
+      $('html').velocity('scroll', {
+        duration: 500,
+        offset: $('#header').height(),
+        easing: 'easeInOutCubic'
+      });
+    }
+
+    var loadingBarWidth = 20;
+    var MAX_LOADING_WIDTH = 95;
+
+    $('.loading-bar').addClass('loading');
+    $('.loading-bar__progress').css('width', loadingBarWidth + '%');
+    clearInterval(loadingTimer);
+    loadingTimer = setInterval(function () {
+      loadingBarWidth += 3;
+      if (loadingBarWidth > MAX_LOADING_WIDTH) {
+        loadingBarWidth = MAX_LOADING_WIDTH;
+      }
+      $('.loading-bar__progress').css('width', loadingBarWidth + '%');
+    }, 500);
+  }, false);
+
+  window.addEventListener('pjax:complete', function () {
+    clearInterval(loadingTimer);
+    $('.loading-bar__progress').css('width', '100%');
+    $('.loading-bar').removeClass('loading');
+    setTimeout(function () {
+      $('.loading-bar__progress').css('width', '0');
+    }, 400);
+    $('link[rel=prefetch], script[data-pjax-rm]').each(function () {
+      $(this).remove();
+    });
+    $('script[data-pjax], #pjax-reload script').each(function () {
+      $(this).parent().append($(this).remove());
+    });
+
+    if (Stun.utils.pjaxReloadBoot) {
+      Stun.utils.pjaxReloadBoot();
+    }
+    if (Stun.utils.pjaxReloadScroll) {
+      Stun.utils.pjaxReloadScroll();
+    }
+    if (Stun.utils.pjaxReloadSidebar) {
+      Stun.utils.pjaxReloadSidebar();
+    }
+    if (false) {
+      if (Stun.utils.pjaxReloadHeader) {
+        Stun.utils.pjaxReloadHeader();
+      }
+      if (Stun.utils.pjaxReloadScrollIcon) {
+        Stun.utils.pjaxReloadScrollIcon();
+      }
+      if (Stun.utils.pjaxReloadLocalSearch) {
+        Stun.utils.pjaxReloadLocalSearch();
+      }
+    }
+  }, false);
+}, false);</script><div id="pjax-reload"><script src="https://cdn.jsdelivr.net/npm/quicklink@1.0.1/dist/quicklink.umd.js"></script><script>function initQuicklink() {
+  quicklink({
+    timeout: '10000',
+    priority: true,
+    ignores: [uri => uri.includes('#'), uri => uri === 'https://bugordemo.github.io/2020/09/23/ZooKeeper%E7%AE%80%E8%BF%B0/', /\/api\/?/,uri => uri.includes('.xml'),uri => uri.includes('.zip'),(uri, el) => el.hasAttribute('nofollow'),(uri, el) => el.hasAttribute('noprefetch')]
+  });
+}
+
+if (true || false) {
+  initQuicklink();
+} else {
+  window.addEventListener('DOMContentLoaded', initQuicklink, false);
+}</script><script src="https://cdn.jsdelivr.net/gh/sukkaw/busuanzi@latest/bsz.pure.mini.js" async></script></div><script src="/js/utils.js?v=2.1.1"></script><script src="/js/stun-boot.js?v=2.1.1"></script><script src="/js/scroll.js?v=2.1.1"></script><script src="/js/header.js?v=2.1.1"></script><script src="/js/sidebar.js?v=2.1.1"></script><script src="/live2dw/lib/L2Dwidget.min.js?094cbace49a39548bed64abff5988b05"></script><script>L2Dwidget.init({"model":{"jsonPath":"/live2dw/assets/koharu.model.json"},"display":{"position":"right","width":200,"height":350},"mobile":{"show":false},"log":false,"pluginJsPath":"lib/","pluginModelPath":"assets/","pluginRootPath":"live2dw/","tagMode":false});</script></body></html>

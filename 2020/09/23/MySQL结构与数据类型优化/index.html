@@ -1,0 +1,287 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="format-detection" content="telephone=no"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black"><link rel="icon" href="/assets/bilibili.jpg?v=2.1.1" type="image/png" sizes="32x32"><meta name="description" content="MySQL结构与数据类型优化                           数据类型的优化                           更小的通常更好       应该尽量使用可以正确存储数据的最小数据类型，更小的数据类型通常更快，因为它们占用更少的磁盘、内存和CPU缓存，并且处理时需要的CPU周期更少，但是要确保没有低估需要存储的值的范围，如果无法确认哪个数据">
+<meta property="og:type" content="article">
+<meta property="og:title" content="MySQL结构与数据类型优化">
+<meta property="og:url" content="https://bugordemo.github.io/2020/09/23/MySQL%E7%BB%93%E6%9E%84%E4%B8%8E%E6%95%B0%E6%8D%AE%E7%B1%BB%E5%9E%8B%E4%BC%98%E5%8C%96/index.html">
+<meta property="og:site_name" content="DemoOrBug">
+<meta property="og:description" content="MySQL结构与数据类型优化                           数据类型的优化                           更小的通常更好       应该尽量使用可以正确存储数据的最小数据类型，更小的数据类型通常更快，因为它们占用更少的磁盘、内存和CPU缓存，并且处理时需要的CPU周期更少，但是要确保没有低估需要存储的值的范围，如果无法确认哪个数据">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://pic.downk.cc/item/5f6a8a10160a154a678c99d3.png">
+<meta property="article:published_time" content="2020-09-22T23:34:23.000Z">
+<meta property="article:modified_time" content="2020-09-22T23:35:07.546Z">
+<meta property="article:author" content="hyf">
+<meta property="article:tag" content="MySQL">
+<meta property="article:tag" content="MySQL调优">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://pic.downk.cc/item/5f6a8a10160a154a678c99d3.png"><title>MySQL结构与数据类型优化 | DemoOrBug</title><link ref="canonical" href="https://bugordemo.github.io/2020/09/23/MySQL%E7%BB%93%E6%9E%84%E4%B8%8E%E6%95%B0%E6%8D%AE%E7%B1%BB%E5%9E%8B%E4%BC%98%E5%8C%96/"><link rel="dns-prefetch" href="https://cdn.jsdelivr.net"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.12.1/css/all.min.css" type="text/css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.css" type="text/css"><link rel="stylesheet" href="/css/index.css?v=2.1.1"><script>var Stun = window.Stun || {};
+var CONFIG = {
+  root: '/',
+  algolia: undefined,
+  fontIcon: {"prompt":{"success":"fas fa-check-circle","info":"fas fa-arrow-circle-right","warning":"fas fa-exclamation-circle","error":"fas fa-times-circle"},"copyBtn":"fas fa-copy"},
+  sidebar: {"offsetTop":"20px","tocMaxDepth":5},
+  header: {"enable":true,"showOnPost":true,"scrollDownIcon":true},
+  postWidget: {"endText":true},
+  nightMode: {"enable":true},
+  back2top: {"enable":true},
+  codeblock: {"style":"carbon","highlight":"light","wordWrap":false},
+  reward: true,
+  fancybox: true,
+  zoomImage: {"gapAside":"20px"},
+  galleryWaterfall: {"colWidth":"220px","gapX":"10px"},
+  lazyload: true,
+  pjax: {"avoidBanner":true},
+  externalLink: {"icon":{"enable":true,"name":"fas fa-external-link-alt"}},
+  shortcuts: {"switchPost":true},
+  prompt: {"copyButton":"复制","copySuccess":"复制成功","copyError":"复制失败"},
+  sourcePath: {"js":"js","css":"css","images":"images"},
+};
+
+window.CONFIG = CONFIG;</script><meta name="generator" content="Hexo 5.2.0"></head><body><div class="container" id="container"><header class="header" id="header"><div class="header-inner"><nav class="header-nav header-nav--fixed"><div class="header-nav-inner"><div class="header-nav-menubtn"><i class="fas fa-bars"></i></div><div class="header-nav-menu"><div class="header-nav-menu-item"><a class="header-nav-menu-item__link" href="/"><span class="header-nav-menu-item__icon"><i class="fas fa-home"></i></span><span class="header-nav-menu-item__text">首页</span></a></div><div class="header-nav-menu-item"><a class="header-nav-menu-item__link" href="javascript:;" onclick="return false;"><span class="header-nav-menu-item__icon"><i class="fas fa-folder-open"></i></span><span class="header-nav-menu-item__text">文章</span></a><div class="header-nav-submenu"><div class="header-nav-submenu-item"><a class="header-nav-submenu-item__link" href="/archives/"><span class="header-nav-submenu-item__icon"><i class="fas fa-folder-open"></i></span><span class="header-nav-submenu-item__text">归档</span></a></div><div class="header-nav-submenu-item"><a class="header-nav-submenu-item__link" href="/categories/"><span class="header-nav-submenu-item__icon"><i class="fas fa-layer-group"></i></span><span class="header-nav-submenu-item__text">分类</span></a></div><div class="header-nav-submenu-item"><a class="header-nav-submenu-item__link" href="/tags/"><span class="header-nav-submenu-item__icon"><i class="fas fa-tags"></i></span><span class="header-nav-submenu-item__text">标签</span></a></div></div></div></div><div class="header-nav-mode"><div class="mode"><div class="mode-track"><span class="mode-track-moon"></span><span class="mode-track-sun"></span></div><div class="mode-thumb"></div></div></div></div></nav><div class="header-banner"><div class="header-banner-info"><div class="header-banner-info__title">DemoOrBug</div><div class="header-banner-info__subtitle">懒惰、急躁、傲慢 ———— 当代程序员美德</div></div><div class="header-banner-arrow"><div class="header-banner-arrow__icon"><i class="fas fa-angle-down"></i></div></div></div></div></header><main class="main" id="main"><div class="main-inner"><div class="content-wrap" id="content-wrap"><div class="content" id="content"><!-- Just used to judge whether it is an article page--><div id="is-post"></div><div class="post"><header class="post-header"><h1 class="post-title">MySQL结构与数据类型优化</h1><div class="post-meta"><span class="post-meta-item post-meta-item--createtime"><span class="post-meta-item__icon"><i class="far fa-calendar-plus"></i></span><span class="post-meta-item__info">发表于</span><span class="post-meta-item__value">2020-09-23</span></span><span class="post-meta-item post-meta-item--updatetime"><span class="post-meta-item__icon"><i class="far fa-calendar-check"></i></span><span class="post-meta-item__info">更新于</span><span class="post-meta-item__value">2020-09-23</span></span><span class="post-meta-item post-meta-item--wordcount"><span class="post-meta-item__icon"><i class="far fa-file-word"></i></span><span class="post-meta-item__info">字数统计</span><span class="post-meta-item__value">2.3k</span></span><span class="post-meta-item post-meta-item--readtime"><span class="post-meta-item__icon"><i class="far fa-clock"></i></span><span class="post-meta-item__info">阅读时长</span><span class="post-meta-item__value">12分</span></span><span class="post-meta-item post-meta-item--visitors"><span class="post-meta-item__icon"><i class="fas fa-eye"></i></span><span class="post-meta-item__info">阅读次数</span><span class="post-meta-item__value" id="busuanzi_value_page_pv"></span></span></div></header><div class="post-body">
+        <h1 id="MySQL结构与数据类型优化"   >
+          <a href="#MySQL结构与数据类型优化" class="heading-link"><i class="fas fa-link"></i></a>MySQL结构与数据类型优化</h1>
+      
+        <h2 id="数据类型的优化"   >
+          <a href="#数据类型的优化" class="heading-link"><i class="fas fa-link"></i></a>数据类型的优化</h2>
+      
+        <h3 id="更小的通常更好"   >
+          <a href="#更小的通常更好" class="heading-link"><i class="fas fa-link"></i></a>更小的通常更好</h3>
+      <p>应该尽量使用可以正确存储数据的最小数据类型，更小的数据类型通常更快，因为它们占用更少的磁盘、内存和CPU缓存，并且处理时需要的CPU周期更少，但是要确保没有低估需要存储的值的范围，如果无法确认哪个数据类型，就选择你认为不会超过范围的最小类型</p>
+<a id="more"></a>
+
+
+        <h3 id="简单就好"   >
+          <a href="#简单就好" class="heading-link"><i class="fas fa-link"></i></a>简单就好</h3>
+      <p>简单数据类型的操作通常需要更少的CPU周期，例如：</p>
+<ol>
+<li>整型比字符操作代价更低，因为字符集和校对规则是字符比较比整型比较更复杂</li>
+<li>使用mysql自建类型而不是字符串来存储日期和时间</li>
+<li>用整型存储IP地址</li>
+</ol>
+
+        <h3 id="尽量避免null"   >
+          <a href="#尽量避免null" class="heading-link"><i class="fas fa-link"></i></a>尽量避免null</h3>
+      <p>如果查询中包含可为NULL的列，对mysql来说很难优化，因为可为null的列使得索引、索引统计和值比较都更加复杂，坦白来说，通常情况下null的列改为not null带来的性能提升比较小，所有没有必要将所有的表的结构进行修改，尽量避免设计成可为null的列</p>
+
+        <h3 id="实际细则"   >
+          <a href="#实际细则" class="heading-link"><i class="fas fa-link"></i></a>实际细则</h3>
+      <ol>
+<li><p>整数类型<br> 可以使用的几种整数类型：<br> TINYINT，SMALLINT，MEDIUMINT，INT，BIGINT分别使用8，16，24，32，64位存储空间。<br> 尽量使用满足需求的最小数据类型</p>
+</li>
+<li><p>字符和字符串类型</p>
+<ol>
+<li>char长度固定，即每条数据占用等长字节空间；最大长度是255个字符，适合用在身份证号、手机号等定长字符串</li>
+<li>varchar可变程度，可以设置最大长度；最大空间是65535个字节，适合用在长度可变的属性</li>
+<li>text不设置长度，当不知道属性的最大长度时，适合用text按照查询速度：char&gt;varchar&gt;text</li>
+</ol>
+<ul>
+<li>varchar根据实际内容长度保存数据<ol>
+<li>使用最小的符合需求的长度</li>
+<li>varchar(n) n小于等于255使用额外一个字节保存长度，n&gt;255使用额外两个字节保存长度</li>
+<li>varchar(5)与varchar(255)保存同样的内容，硬盘存储空间相同，但内存空间占用不同，是指定的大小</li>
+<li>varchar在mysql5.6之前变更长度，或者从255一下变更到255以上时时，都会导致锁表</li>
+<li>应用场景<ol>
+<li>存储长度波动较大的数据，如：文章，有的会很短有的会很长</li>
+<li>字符串很少更新的场景，每次更新后都会重算并使用额外存储空间保存长度</li>
+<li>适合保存多字节字符，如：汉字，特殊字符等</li>
+</ol>
+</li>
+</ol>
+</li>
+<li>char固定长度的字符串<ol>
+<li>最大长度：255</li>
+<li>会自动删除末尾的空格</li>
+<li>检索效率、写效率 会比varchar高，以空间换时间</li>
+<li>应用场景<ol>
+<li>存储长度波动不大的数据，如：md5摘要</li>
+<li>存储短字符串、经常更新的字符串</li>
+</ol>
+</li>
+</ol>
+</li>
+</ul>
+</li>
+<li><p>BLOB和TEXT类型<br> MySQL 把每个 BLOB 和 TEXT 值当作一个独立的对象处理。两者都是为了存储很大数据而设计的字符串类型，分别采用二进制和字符方式存储。</p>
+</li>
+<li><p>datetime和timestamp、date</p>
+<ol>
+<li>不要使用字符串类型来存储日期时间数据</li>
+<li>日期时间类型通常比字符串占用的存储空间小</li>
+<li>日期时间类型在进行查找过滤时可以利用日期来进行比对</li>
+<li>日期时间类型还有着丰富的处理函数，可以方便的对时间类型进行日期计算</li>
+<li>使用int存储日期时间不如使用timestamp类型</li>
+</ol>
+<ul>
+<li>datetime占用8个字节，与时区无关，数据库底层时区配置，对datetime无效，可保存到毫秒，可保存时间范围大，不要使用字符串存储日期类型，占用空间大，损失日期类型函数的便捷性</li>
+<li>timestamp占用4个字节，时间范围：1970-01-01到2038-01-19，精确到秒，采用整形存储，依赖数据库设置的时区，自动更新timestamp列的值</li>
+<li>date占用的字节数比使用字符串、datetime、int存储要少，使用date类型只需要3个字节，可以利用日期时间函数进行日期之间的计算，可用于保存1000-01-01到9999-12-31之间的日期</li>
+</ul>
+</li>
+<li><p>使用枚举代替字符串类型<br> 有时可以使用枚举类代替常用的字符串类型，mysql存储枚举类型会非常紧凑，会根据列表值的数据压缩到一个或两个字节中，mysql在内部会将每个值在列表中的位置保存为整数，并且在表的.frm文件中保存“数字-字符串”映射关系的查找表<br> create table enum_test(e enum(‘fish’,’apple’,’dog’) not null);<br> insert into enum_test(e) values(‘fish’),(‘dog’),(‘apple’);<br> select e+0 from enum_test;</p>
+</li>
+<li><p>特殊类型数据<br> 人们经常使用varchar(15)来存储ip地址，然而，它的本质是32位无符号整数不是字符串，可以使用INET_ATON()和INET_NTOA函数在这两种表示方法之间转换<br> select inet_aton(‘1.1.1.1’)<br> select inet_ntoa(16843009)</p>
+</li>
+</ol>
+
+        <h2 id="合理使用范式和反范式"   >
+          <a href="#合理使用范式和反范式" class="heading-link"><i class="fas fa-link"></i></a>合理使用范式和反范式</h2>
+      
+        <h3 id="什么是三范式"   >
+          <a href="#什么是三范式" class="heading-link"><i class="fas fa-link"></i></a>什么是三范式</h3>
+      <p>设计关系型数据库时，遵从不同的规范要求，设计出合理的关系型数据库，这些不同的规范要求被称为不同的范式，各种范式呈递次规范，越高的范式数据库冗余越小。</p>
+<ol>
+<li>第一范式：保证每列的原子性</li>
+<li>第二范式：保证一张表只描述一件事情</li>
+<li>第三范式：保证每列都和主键直接相关</li>
+</ol>
+
+        <h3 id="范式优缺点"   >
+          <a href="#范式优缺点" class="heading-link"><i class="fas fa-link"></i></a>范式优缺点</h3>
+      <p>优点：</p>
+<ol>
+<li>范式化的更新通常比反范式要快</li>
+<li>当数据较好的范式化后，很少或者没有重复的数据</li>
+<li>范式化的数据比较小，可以放在内存中，操作比较快<br>缺点：<br>通常需要进行关联</li>
+</ol>
+
+        <h3 id="反范式反范式"   >
+          <a href="#反范式反范式" class="heading-link"><i class="fas fa-link"></i></a>反范式反范式</h3>
+      <p>优点：</p>
+<ol>
+<li>所有的数据都在同一张表中，可以避免关联</li>
+<li>可以设计有效的索引<br>缺点：<br>表格内的冗余较多，删除数据时候会造成表有些有用的信息丢失</li>
+</ol>
+
+        <h3 id="注意"   >
+          <a href="#注意" class="heading-link"><i class="fas fa-link"></i></a>注意</h3>
+      <p>在企业中很好能做到严格意义上的范式或者反范式，一般需要<strong>混合使用</strong><br>例如：<br>在一个网站实例中，这个网站，允许用户发送消息，并且一些用户是付费用户。现在想查看付费用户最近的10条信息。  在user表和message表中都存储用户类型(account_type)而不用完全的反范式化。这避免了完全反范式化的插入和删除问题，因为即使没有消息的时候也绝不会丢失用户的信息。这样也不会把user_message表搞得太大，有利于高效地获取数据。<br>（空间换时间）</p>
+
+        <h2 id="主键的选择"   >
+          <a href="#主键的选择" class="heading-link"><i class="fas fa-link"></i></a>主键的选择</h2>
+      <ol>
+<li>代理主键：与业务无关的，无意义的数字序列</li>
+<li>自然主键：事物属性中的自然唯一标识
+        <h3 id="推荐使用代理主键"   >
+          <a href="#推荐使用代理主键" class="heading-link"><i class="fas fa-link"></i></a>推荐使用代理主键</h3>
+      原因：</li>
+<li>它们不与业务耦合，因此更容易维护</li>
+<li>一个大多数表，最好是全部表，通用的键策略能够减少需要编写的源码数量，减少系统的总体拥有成本</li>
+</ol>
+
+        <h2 id="字符集的选择"   >
+          <a href="#字符集的选择" class="heading-link"><i class="fas fa-link"></i></a>字符集的选择</h2>
+      <ol>
+<li>纯拉丁字符能表示的内容，没必要选择 latin1 之外的其他字符编码，因为这会节省大量的存储空间</li>
+<li>如果我们可以确定不需要存放多种语言，就没必要非得使用UTF8或者其他UNICODE字符类型，这回造成大量的存储空间浪费</li>
+<li>MySQL的数据类型可以精确到字段，所以当我们需要大型数据库中存放多字节数据的时候，可以通过对不同表不同字段使用不同的数据类型来较大程度减小数据存储量，进而降低 IO 操作次数并提高缓存命中率</li>
+</ol>
+
+        <h2 id="存储引擎的选择"   >
+          <a href="#存储引擎的选择" class="heading-link"><i class="fas fa-link"></i></a>存储引擎的选择</h2>
+      <p>
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="https://pic.downk.cc/item/5f6a8a10160a154a678c99d3.png"  alt="279454170895f4284f38ccb1a7d047d4.png">
+      </p>
+
+        <h2 id="适当的数据冗余"   >
+          <a href="#适当的数据冗余" class="heading-link"><i class="fas fa-link"></i></a>适当的数据冗余</h2>
+      <ol>
+<li>被频繁引用且只能通过 Join 2张(或者更多)大表的方式才能得到的独立小字段。</li>
+<li>这样的场景由于每次Join仅仅只是为了取得某个小字段的值，Join到的记录又大，会造成大量不必要的 IO，完全可以通过空间换取时间的方式来优化。不过，冗余的同时需要确保数据的一致性不会遭到破坏，确保更新的同时冗余字段也被更新
+        <h2 id="适当拆分"   >
+          <a href="#适当拆分" class="heading-link"><i class="fas fa-link"></i></a>适当拆分</h2>
+      当我们的表中存在类似于 TEXT 或者是很大的 VARCHAR类型的大字段的时候，如果我们大部分访问这张表的时候都不需要这个字段，我们就该义无反顾的将其拆分到另外的独立表中，以减少常用数据所占用的存储空间。这样做的一个明显好处就是每个数据块中可以存储的数据条数可以大大增加，既减少物理 IO 次数，也能大大提高内存中的缓存命中率。</li>
+</ol>
+</div><footer class="post-footer"><div class="post-ending ending"><div class="ending__text">------ 本文结束，感谢您的阅读 ------</div></div><div class="post-copyright copyright"><div class="copyright-author"><span class="copyright-author__name">本文作者: </span><span class="copyright-author__value"><a href="https://bugordemo.github.io">hyf</a></span></div><div class="copyright-link"><span class="copyright-link__name">本文链接: </span><span class="copyright-link__value"><a href="https://bugordemo.github.io/2020/09/23/MySQL%E7%BB%93%E6%9E%84%E4%B8%8E%E6%95%B0%E6%8D%AE%E7%B1%BB%E5%9E%8B%E4%BC%98%E5%8C%96/">https://bugordemo.github.io/2020/09/23/MySQL%E7%BB%93%E6%9E%84%E4%B8%8E%E6%95%B0%E6%8D%AE%E7%B1%BB%E5%9E%8B%E4%BC%98%E5%8C%96/</a></span></div><div class="copyright-notice"><span class="copyright-notice__name">版权声明: </span><span class="copyright-notice__value">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" rel="external nofollow" target="_blank">BY-NC-SA</a> 许可协议。转载请注明出处！</span></div></div><div class="post-tags"><span class="post-tags-item"><span class="post-tags-item__icon"><i class="fas fa-tag"></i></span><a class="post-tags-item__link" href="https://bugordemo.github.io/tags/MySQL/">MySQL</a></span><span class="post-tags-item"><span class="post-tags-item__icon"><i class="fas fa-tag"></i></span><a class="post-tags-item__link" href="https://bugordemo.github.io/tags/MySQL%E8%B0%83%E4%BC%98/">MySQL调优</a></span></div><div class="post-reward reward"><div class="reward-button">请我喝杯咖啡~</div><div class="reward-qrcode"><span class="reward-qrcode-alipay"><img class="reward-qrcode-alipay__img" src="/assets/alipay.jpg"><div class="reward-qrcode-alipay__text">支付宝打赏</div></span><span class="reward-qrcode-wechat"><img class="reward-qrcode-wechat__img" src="/assets/wechat.jpg"><div class="reward-qrcode-wechat__text">微信打赏</div></span></div></div><nav class="post-paginator paginator"><div class="paginator-prev"><a class="paginator-prev__link" href="/2020/09/23/MySQL%E7%B4%A2%E5%BC%95%E5%8F%8A%E9%80%9A%E8%BF%87%E7%B4%A2%E5%BC%95%E8%BF%9B%E8%A1%8C%E4%BC%98%E5%8C%96/"><span class="paginator-prev__icon"><i class="fas fa-angle-left"></i></span><span class="paginator-prev__text">MySQL索引及通过索引进行优化</span></a></div><div class="paginator-next"><a class="paginator-next__link" href="/2020/09/23/MySQL%E6%80%A7%E8%83%BD%E7%9B%91%E6%8E%A7/"><span class="paginator-prev__text">MySQL性能监控</span><span class="paginator-next__icon"><i class="fas fa-angle-right"></i></span></a></div></nav></footer></div></div></div><div class="sidebar-wrap" id="sidebar-wrap"><aside class="sidebar" id="sidebar"><div class="sidebar-nav"><span class="sidebar-nav-toc current">文章目录</span><span class="sidebar-nav-ov">站点概览</span></div><section class="sidebar-toc"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%95%B0%E6%8D%AE%E7%B1%BB%E5%9E%8B%E7%9A%84%E4%BC%98%E5%8C%96"><span class="toc-number">1.</span> <span class="toc-text">
+          数据类型的优化</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%9B%B4%E5%B0%8F%E7%9A%84%E9%80%9A%E5%B8%B8%E6%9B%B4%E5%A5%BD"><span class="toc-number">1.1.</span> <span class="toc-text">
+          更小的通常更好</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%AE%80%E5%8D%95%E5%B0%B1%E5%A5%BD"><span class="toc-number">1.2.</span> <span class="toc-text">
+          简单就好</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%B0%BD%E9%87%8F%E9%81%BF%E5%85%8Dnull"><span class="toc-number">1.3.</span> <span class="toc-text">
+          尽量避免null</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%AE%9E%E9%99%85%E7%BB%86%E5%88%99"><span class="toc-number">1.4.</span> <span class="toc-text">
+          实际细则</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%90%88%E7%90%86%E4%BD%BF%E7%94%A8%E8%8C%83%E5%BC%8F%E5%92%8C%E5%8F%8D%E8%8C%83%E5%BC%8F"><span class="toc-number">2.</span> <span class="toc-text">
+          合理使用范式和反范式</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BB%80%E4%B9%88%E6%98%AF%E4%B8%89%E8%8C%83%E5%BC%8F"><span class="toc-number">2.1.</span> <span class="toc-text">
+          什么是三范式</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%8C%83%E5%BC%8F%E4%BC%98%E7%BC%BA%E7%82%B9"><span class="toc-number">2.2.</span> <span class="toc-text">
+          范式优缺点</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%8F%8D%E8%8C%83%E5%BC%8F%E5%8F%8D%E8%8C%83%E5%BC%8F"><span class="toc-number">2.3.</span> <span class="toc-text">
+          反范式反范式</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%B3%A8%E6%84%8F"><span class="toc-number">2.4.</span> <span class="toc-text">
+          注意</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%BB%E9%94%AE%E7%9A%84%E9%80%89%E6%8B%A9"><span class="toc-number">3.</span> <span class="toc-text">
+          主键的选择</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%8E%A8%E8%8D%90%E4%BD%BF%E7%94%A8%E4%BB%A3%E7%90%86%E4%B8%BB%E9%94%AE"><span class="toc-number">3.1.</span> <span class="toc-text">
+          推荐使用代理主键</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%AD%97%E7%AC%A6%E9%9B%86%E7%9A%84%E9%80%89%E6%8B%A9"><span class="toc-number">4.</span> <span class="toc-text">
+          字符集的选择</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%AD%98%E5%82%A8%E5%BC%95%E6%93%8E%E7%9A%84%E9%80%89%E6%8B%A9"><span class="toc-number">5.</span> <span class="toc-text">
+          存储引擎的选择</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%80%82%E5%BD%93%E7%9A%84%E6%95%B0%E6%8D%AE%E5%86%97%E4%BD%99"><span class="toc-number">6.</span> <span class="toc-text">
+          适当的数据冗余</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%80%82%E5%BD%93%E6%8B%86%E5%88%86"><span class="toc-number">7.</span> <span class="toc-text">
+          适当拆分</span></a></li></ol></section><!-- ov = overview--><section class="sidebar-ov hide"><div class="sidebar-ov-author"><div class="sidebar-ov-author__avatar"><img class="sidebar-ov-author__avatar_img" src="https://wx2.sbimg.cn/2020/09/22/GJ1jY.md.jpg" alt="avatar"></div><p class="sidebar-ov-author__text">write code and love life</p></div><div class="sidebar-ov-social"><a class="sidebar-ov-social-item" href="https://github.com/bugORdemo" target="_blank" rel="noopener" data-popover="Github" data-popover-pos="up"><span class="sidebar-ov-social-item__icon"><i class="fab fa-github"></i></span></a><a class="sidebar-ov-social-item" href="NullPointerEXC-H" target="_blank" rel="noopener" data-popover="微信" data-popover-pos="up"><span class="sidebar-ov-social-item__icon"><i class="fab fa-weixin"></i></span></a><a class="sidebar-ov-social-item" href="798968439" target="_blank" rel="noopener" data-popover="QQ" data-popover-pos="up"><span class="sidebar-ov-social-item__icon"><i class="fab fa-qq"></i></span></a></div><div class="sidebar-ov-cc"><a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank" rel="noopener" data-popover="知识共享许可协议" data-popover-pos="up"><img src="/images/cc-by-nc-sa.svg"></a></div></section><div class="sidebar-reading"><div class="sidebar-reading-info"><span class="sidebar-reading-info__text">你已阅读了 </span><span class="sidebar-reading-info__num">0</span></div><div class="sidebar-reading-line"></div></div></aside></div><div class="clearfix"></div></div></main><footer class="footer" id="footer"><div class="footer-inner"><div><span>Copyright © 2020</span><span class="footer__icon"><i class="fas fa-heart"></i></span><span><a href="https://github.com/bugORdemo" rel="noopener" target="_blank">bugORdemo</a></span></div><div><span>由 <a href="http://hexo.io/" title="Hexo" target="_blank" rel="noopener">Hexo</a> 强力驱动</span><span> v5.2.0</span><span class="footer__devider">|</span><span>主题 - <a href="https://github.com/liuyib/hexo-theme-stun/" title="Stun" target="_blank" rel="noopener">Stun</a></span><span> v2.1.1</span></div><div class="busuanzi"><span class="busuanzi-siteuv"><span class="busuanzi-siteuv__icon"><i class="fas fa-user"></i></span><span class="busuanzi-siteuv__info">访问人数</span><span class="busuanzi-siteuv__value" id="busuanzi_value_site_uv"></span></span><span class="busuanzi-sitepv"><span class="busuanzi-siteuv__icon"><i class="fas fa-eye"></i></span><span class="busuanzi-siteuv__info">浏览总量</span><span class="busuanzi-siteuv__value" id="busuanzi_value_site_pv"></span></span></div></div></footer><div class="loading-bar" id="loading-bar"><div class="loading-bar__progress"></div></div><div class="back2top" id="back2top"><span class="back2top__icon"><i class="fas fa-rocket"></i></span></div></div><script src="https://cdn.jsdelivr.net/npm/jquery@v3.4.1/dist/jquery.min.js"></script><script src="https://cdn.jsdelivr.net/npm/velocity-animate@1.5.2/velocity.min.js"></script><script src="https://cdn.jsdelivr.net/npm/velocity-animate@1.5.2/velocity.ui.min.js"></script><script src="https://cdn.jsdelivr.net/npm/ribbon.js@latest/dist/ribbon.min.js" size="120" alpha="0.6" zIndex="-1"></script><script src="https://cdn.jsdelivr.net/gh/fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.js"></script><script src="https://cdn.jsdelivr.net/npm/masonry-layout@4.2.2/dist/masonry.pkgd.min.js"></script><script src="https://cdn.jsdelivr.net/npm/lazyload@2.0.0-rc.2/lazyload.min.js"></script><script src="https://cdn.jsdelivr.net/npm/pjax@latest/pjax.min.js"></script><script>window.addEventListener('DOMContentLoaded', function () {
+  var pjax = new Pjax({"selectors":["head title","#main",".pjax-reload"],"history":true,"scrollTo":false,"scrollRestoration":false,"cacheBust":false,"debug":false,"currentUrlFullReload":false,"timeout":0});
+  // 加载进度条的计时器
+  var loadingTimer = null;
+
+  // 重置页面 Y 方向上的滚动偏移量
+  document.addEventListener('pjax:send', function () {
+    $('.header-nav-menu').removeClass('show');
+    if (CONFIG.pjax && CONFIG.pjax.avoidBanner) {
+      $('html').velocity('scroll', {
+        duration: 500,
+        offset: $('#header').height(),
+        easing: 'easeInOutCubic'
+      });
+    }
+
+    var loadingBarWidth = 20;
+    var MAX_LOADING_WIDTH = 95;
+
+    $('.loading-bar').addClass('loading');
+    $('.loading-bar__progress').css('width', loadingBarWidth + '%');
+    clearInterval(loadingTimer);
+    loadingTimer = setInterval(function () {
+      loadingBarWidth += 3;
+      if (loadingBarWidth > MAX_LOADING_WIDTH) {
+        loadingBarWidth = MAX_LOADING_WIDTH;
+      }
+      $('.loading-bar__progress').css('width', loadingBarWidth + '%');
+    }, 500);
+  }, false);
+
+  window.addEventListener('pjax:complete', function () {
+    clearInterval(loadingTimer);
+    $('.loading-bar__progress').css('width', '100%');
+    $('.loading-bar').removeClass('loading');
+    setTimeout(function () {
+      $('.loading-bar__progress').css('width', '0');
+    }, 400);
+    $('link[rel=prefetch], script[data-pjax-rm]').each(function () {
+      $(this).remove();
+    });
+    $('script[data-pjax], #pjax-reload script').each(function () {
+      $(this).parent().append($(this).remove());
+    });
+
+    if (Stun.utils.pjaxReloadBoot) {
+      Stun.utils.pjaxReloadBoot();
+    }
+    if (Stun.utils.pjaxReloadScroll) {
+      Stun.utils.pjaxReloadScroll();
+    }
+    if (Stun.utils.pjaxReloadSidebar) {
+      Stun.utils.pjaxReloadSidebar();
+    }
+    if (false) {
+      if (Stun.utils.pjaxReloadHeader) {
+        Stun.utils.pjaxReloadHeader();
+      }
+      if (Stun.utils.pjaxReloadScrollIcon) {
+        Stun.utils.pjaxReloadScrollIcon();
+      }
+      if (Stun.utils.pjaxReloadLocalSearch) {
+        Stun.utils.pjaxReloadLocalSearch();
+      }
+    }
+  }, false);
+}, false);</script><div id="pjax-reload"><script src="https://cdn.jsdelivr.net/npm/quicklink@1.0.1/dist/quicklink.umd.js"></script><script>function initQuicklink() {
+  quicklink({
+    timeout: '10000',
+    priority: true,
+    ignores: [uri => uri.includes('#'), uri => uri === 'https://bugordemo.github.io/2020/09/23/MySQL%E7%BB%93%E6%9E%84%E4%B8%8E%E6%95%B0%E6%8D%AE%E7%B1%BB%E5%9E%8B%E4%BC%98%E5%8C%96/', /\/api\/?/,uri => uri.includes('.xml'),uri => uri.includes('.zip'),(uri, el) => el.hasAttribute('nofollow'),(uri, el) => el.hasAttribute('noprefetch')]
+  });
+}
+
+if (true || false) {
+  initQuicklink();
+} else {
+  window.addEventListener('DOMContentLoaded', initQuicklink, false);
+}</script><script src="https://cdn.jsdelivr.net/gh/sukkaw/busuanzi@latest/bsz.pure.mini.js" async></script></div><script src="/js/utils.js?v=2.1.1"></script><script src="/js/stun-boot.js?v=2.1.1"></script><script src="/js/scroll.js?v=2.1.1"></script><script src="/js/header.js?v=2.1.1"></script><script src="/js/sidebar.js?v=2.1.1"></script><script src="/live2dw/lib/L2Dwidget.min.js?094cbace49a39548bed64abff5988b05"></script><script>L2Dwidget.init({"model":{"jsonPath":"/live2dw/assets/koharu.model.json"},"display":{"position":"right","width":200,"height":350},"mobile":{"show":false},"log":false,"pluginJsPath":"lib/","pluginModelPath":"assets/","pluginRootPath":"live2dw/","tagMode":false});</script></body></html>

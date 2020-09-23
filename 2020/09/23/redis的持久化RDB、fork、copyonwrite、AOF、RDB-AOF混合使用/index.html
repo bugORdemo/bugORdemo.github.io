@@ -1,0 +1,303 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="format-detection" content="telephone=no"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black"><link rel="icon" href="/assets/bilibili.jpg?v=2.1.1" type="image/png" sizes="32x32"><meta name="description" content="Redis的持久化RDB、fork、copyonwrite、AOF、RDB&amp;AOF混合使用                           RDB持久化       RDB是Redis用来进行持久化的一种方式，是把当前内存中的数据集快照写入磁盘，恢复时是将快照文件直接读到内存里                     触发方式       RDB 有两种触发方式，">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Redis的持久化RDB、fork、copyonwrite、AOF、RDB&amp;AOF混合使用">
+<meta property="og:url" content="https://bugordemo.github.io/2020/09/23/redis%E7%9A%84%E6%8C%81%E4%B9%85%E5%8C%96RDB%E3%80%81fork%E3%80%81copyonwrite%E3%80%81AOF%E3%80%81RDB-AOF%E6%B7%B7%E5%90%88%E4%BD%BF%E7%94%A8/index.html">
+<meta property="og:site_name" content="DemoOrBug">
+<meta property="og:description" content="Redis的持久化RDB、fork、copyonwrite、AOF、RDB&amp;AOF混合使用                           RDB持久化       RDB是Redis用来进行持久化的一种方式，是把当前内存中的数据集快照写入磁盘，恢复时是将快照文件直接读到内存里                     触发方式       RDB 有两种触发方式，">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://pic.downk.cc/item/5f6a9090160a154a678eeb3d.png">
+<meta property="og:image" content="https://pic.downk.cc/item/5f6a9060160a154a678edbd7.png">
+<meta property="og:image" content="https://pic.downk.cc/item/5f6a9060160a154a678edbcd.png">
+<meta property="og:image" content="https://pic.downk.cc/item/5f6a9060160a154a678edbd0.png">
+<meta property="og:image" content="https://pic.downk.cc/item/5f6a90a6160a154a678ef26b.png">
+<meta property="og:image" content="https://pic.downk.cc/item/5f6a90a6160a154a678ef267.png">
+<meta property="og:image" content="https://pic.downk.cc/item/5f6a90e0160a154a678f054d.png">
+<meta property="article:published_time" content="2020-09-23T00:00:58.000Z">
+<meta property="article:modified_time" content="2020-09-23T00:18:43.506Z">
+<meta property="article:author" content="hyf">
+<meta property="article:tag" content="Redis">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://pic.downk.cc/item/5f6a9090160a154a678eeb3d.png"><title>Redis的持久化RDB、fork、copyonwrite、AOF、RDB&amp;AOF混合使用 | DemoOrBug</title><link ref="canonical" href="https://bugordemo.github.io/2020/09/23/redis%E7%9A%84%E6%8C%81%E4%B9%85%E5%8C%96RDB%E3%80%81fork%E3%80%81copyonwrite%E3%80%81AOF%E3%80%81RDB-AOF%E6%B7%B7%E5%90%88%E4%BD%BF%E7%94%A8/"><link rel="dns-prefetch" href="https://cdn.jsdelivr.net"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.12.1/css/all.min.css" type="text/css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.css" type="text/css"><link rel="stylesheet" href="/css/index.css?v=2.1.1"><script>var Stun = window.Stun || {};
+var CONFIG = {
+  root: '/',
+  algolia: undefined,
+  fontIcon: {"prompt":{"success":"fas fa-check-circle","info":"fas fa-arrow-circle-right","warning":"fas fa-exclamation-circle","error":"fas fa-times-circle"},"copyBtn":"fas fa-copy"},
+  sidebar: {"offsetTop":"20px","tocMaxDepth":5},
+  header: {"enable":true,"showOnPost":true,"scrollDownIcon":true},
+  postWidget: {"endText":true},
+  nightMode: {"enable":true},
+  back2top: {"enable":true},
+  codeblock: {"style":"carbon","highlight":"light","wordWrap":false},
+  reward: true,
+  fancybox: true,
+  zoomImage: {"gapAside":"20px"},
+  galleryWaterfall: {"colWidth":"220px","gapX":"10px"},
+  lazyload: true,
+  pjax: {"avoidBanner":true},
+  externalLink: {"icon":{"enable":true,"name":"fas fa-external-link-alt"}},
+  shortcuts: {"switchPost":true},
+  prompt: {"copyButton":"复制","copySuccess":"复制成功","copyError":"复制失败"},
+  sourcePath: {"js":"js","css":"css","images":"images"},
+};
+
+window.CONFIG = CONFIG;</script><meta name="generator" content="Hexo 5.2.0"></head><body><div class="container" id="container"><header class="header" id="header"><div class="header-inner"><nav class="header-nav header-nav--fixed"><div class="header-nav-inner"><div class="header-nav-menubtn"><i class="fas fa-bars"></i></div><div class="header-nav-menu"><div class="header-nav-menu-item"><a class="header-nav-menu-item__link" href="/"><span class="header-nav-menu-item__icon"><i class="fas fa-home"></i></span><span class="header-nav-menu-item__text">首页</span></a></div><div class="header-nav-menu-item"><a class="header-nav-menu-item__link" href="javascript:;" onclick="return false;"><span class="header-nav-menu-item__icon"><i class="fas fa-folder-open"></i></span><span class="header-nav-menu-item__text">文章</span></a><div class="header-nav-submenu"><div class="header-nav-submenu-item"><a class="header-nav-submenu-item__link" href="/archives/"><span class="header-nav-submenu-item__icon"><i class="fas fa-folder-open"></i></span><span class="header-nav-submenu-item__text">归档</span></a></div><div class="header-nav-submenu-item"><a class="header-nav-submenu-item__link" href="/categories/"><span class="header-nav-submenu-item__icon"><i class="fas fa-layer-group"></i></span><span class="header-nav-submenu-item__text">分类</span></a></div><div class="header-nav-submenu-item"><a class="header-nav-submenu-item__link" href="/tags/"><span class="header-nav-submenu-item__icon"><i class="fas fa-tags"></i></span><span class="header-nav-submenu-item__text">标签</span></a></div></div></div></div><div class="header-nav-mode"><div class="mode"><div class="mode-track"><span class="mode-track-moon"></span><span class="mode-track-sun"></span></div><div class="mode-thumb"></div></div></div></div></nav><div class="header-banner"><div class="header-banner-info"><div class="header-banner-info__title">DemoOrBug</div><div class="header-banner-info__subtitle">懒惰、急躁、傲慢 ———— 当代程序员美德</div></div><div class="header-banner-arrow"><div class="header-banner-arrow__icon"><i class="fas fa-angle-down"></i></div></div></div></div></header><main class="main" id="main"><div class="main-inner"><div class="content-wrap" id="content-wrap"><div class="content" id="content"><!-- Just used to judge whether it is an article page--><div id="is-post"></div><div class="post"><header class="post-header"><h1 class="post-title">Redis的持久化RDB、fork、copyonwrite、AOF、RDB&amp;AOF混合使用</h1><div class="post-meta"><span class="post-meta-item post-meta-item--createtime"><span class="post-meta-item__icon"><i class="far fa-calendar-plus"></i></span><span class="post-meta-item__info">发表于</span><span class="post-meta-item__value">2020-09-23</span></span><span class="post-meta-item post-meta-item--updatetime"><span class="post-meta-item__icon"><i class="far fa-calendar-check"></i></span><span class="post-meta-item__info">更新于</span><span class="post-meta-item__value">2020-09-23</span></span><span class="post-meta-item post-meta-item--wordcount"><span class="post-meta-item__icon"><i class="far fa-file-word"></i></span><span class="post-meta-item__info">字数统计</span><span class="post-meta-item__value">3.5k</span></span><span class="post-meta-item post-meta-item--readtime"><span class="post-meta-item__icon"><i class="far fa-clock"></i></span><span class="post-meta-item__info">阅读时长</span><span class="post-meta-item__value">19分</span></span><span class="post-meta-item post-meta-item--visitors"><span class="post-meta-item__icon"><i class="fas fa-eye"></i></span><span class="post-meta-item__info">阅读次数</span><span class="post-meta-item__value" id="busuanzi_value_page_pv"></span></span></div></header><div class="post-body">
+        <h1 id="Redis的持久化RDB、fork、copyonwrite、AOF、RDB-amp-AOF混合使用"   >
+          <a href="#Redis的持久化RDB、fork、copyonwrite、AOF、RDB-amp-AOF混合使用" class="heading-link"><i class="fas fa-link"></i></a>Redis的持久化RDB、fork、copyonwrite、AOF、RDB&amp;AOF混合使用</h1>
+      
+        <h2 id="RDB持久化"   >
+          <a href="#RDB持久化" class="heading-link"><i class="fas fa-link"></i></a>RDB持久化</h2>
+      <p>RDB是Redis用来进行持久化的一种方式，是把当前内存中的数据集快照写入磁盘，恢复时是将快照文件直接读到内存里</p>
+
+        <h3 id="触发方式"   >
+          <a href="#触发方式" class="heading-link"><i class="fas fa-link"></i></a>触发方式</h3>
+      <p>RDB 有两种触发方式，分别是自动触发和手动触发</p>
+<a id="more"></a>
+
+<ol>
+<li>自动触发<ul>
+<li>在 redis.conf 配置文件中的 SNAPSHOTTING 下<ol>
+<li>save：用来配置触发 Redis的 RDB 持久化条件，也就是什么时候将内存中的数据保存到硬盘。比如“save m n”。表示m秒内数据有n次修改时，自动触发bgsave。如果不需要持久化，那么你可以注释掉所有的 save 行来停用保存功能，也可以直接一个空字符串来实现停用：save “”<br>
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="https://pic.downk.cc/item/5f6a9090160a154a678eeb3d.png"  alt="a550fbdd95d0f98886d59549dfd68eea.png">
+      </li>
+<li>stop-writes-on-bgsave-error ：默认值为yes。当启用了RDB且最后一次后台保存数据失败，Redis是否停止接收数据。这会让用户意识到数据没有正确持久化到磁盘上，否则没有人会注意到灾难（disaster）发生了。如果Redis重启了，那么又可以重新开始接收数据了</li>
+<li>rdbcompression ；默认值是yes。对于存储到磁盘中的快照，可以设置是否进行压缩存储。如果是的话，redis会采用LZF算法进行压缩。如果你不想消耗CPU来进行压缩的话，可以设置为关闭此功能，但是存储在磁盘上的快照会比较大。</li>
+<li>rdbchecksum ：默认值是yes。在存储快照后，我们还可以让redis使用CRC64算法来进行数据校验，但是这样做会增加大约10%的性能消耗，如果希望获取到最大的性能提升，可以关闭此功能。</li>
+<li>dbfilename ：设置快照的文件名，默认是 dump.rdb </li>
+<li>dir：设置快照文件的存放路径，这个配置项一定是个目录，而不能是文件名。默认是和当前配置文件保存在同一目录。</li>
+</ol>
+</li>
+<li>也就是说通过在配置文件中配置的 save 方式，当实际操作满足该配置形式时就会进行 RDB 持久化，将当前的内存快照保存在 dir 配置的目录中，文件名由配置的 dbfilename 决定。</li>
+</ul>
+</li>
+<li>手动触发<ol>
+<li>save<br> 该命令会阻塞当前Redis服务器，执行save命令期间，Redis不能处理其他命令，直到RDB过程完成为止。场景：关机维护</li>
+<li>bgsave<br> 执行该命令时，Redis会在后台异步进行快照操作，快照同时还可以响应客户端请求。具体操作是Redis进程执行fork操作创建子进程，RDB持久化过程由子进程负责，完成后自动结束。阻塞只发生在fork阶段，一般时间很短。<br> 基本上 Redis 内部所有的RDB操作都是采用 bgsave 命令。</li>
+</ol>
+</li>
+</ol>
+
+        <h3 id="恢复数据"   >
+          <a href="#恢复数据" class="heading-link"><i class="fas fa-link"></i></a>恢复数据</h3>
+      <p>将备份文件 (dump.rdb) 移动到 redis 安装目录并启动服务即可，redis就会自动加载文件数据至内存了。Redis 服务器在载入 RDB 文件期间，会一直处于阻塞状态，直到载入工作完成为止。　　<br>获取 redis 的安装目录可以使用 config get dir 命令<br>
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="https://pic.downk.cc/item/5f6a9060160a154a678edbd7.png"  alt="4e0051fc9660d2ba8dec2f2829a57638.png">
+      <br>载入的标识是如下命令：<br>
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="https://pic.downk.cc/item/5f6a9060160a154a678edbcd.png"  alt="3d1e30c7dec6765e2ece8e0b29b30d8f.png">
+      </p>
+
+        <h3 id="优劣势"   >
+          <a href="#优劣势" class="heading-link"><i class="fas fa-link"></i></a>优劣势</h3>
+      <ul>
+<li>优势<ol>
+<li>RDB是一个非常紧凑(compact)的文件，它保存了redis在某个时间点上的数据集。这种文件非常适合用于进行备份和灾难恢复。　　</li>
+<li>生成RDB文件的时候，redis主进程会fork()一个子进程来处理所有保存工作，主进程不需要进行任何磁盘IO操作。　　</li>
+<li>RDB 在恢复大数据集时的速度比 AOF 的恢复速度要快。　　</li>
+</ol>
+</li>
+<li>劣势　　<ol>
+<li>RDB方式数据没办法做到实时持久化/秒级持久化。因为bgsave每次运行都要执行fork操作创建子进程，属于重量级操作，如果不采用压缩算法(内存中的数据被克隆了一份，大致2倍的膨胀性需要考虑)，频繁执行<strong>成本过高</strong>(<strong>影响性能</strong>)　　</li>
+<li>RDB文件使用特定二进制格式保存，Redis版本演进过程中有多个格式的RDB版本，存在老版本Redis服务无法兼容新版RDB格式的问题(<strong>版本不兼容</strong>)　　</li>
+<li>在一定间隔时间做一次备份，所以如果redis意外down掉的话，就会丢失最后一次快照后的所有修改(<strong>数据有丢失</strong>)</li>
+<li>不支持拉链，只有一个dump.rdb，需要人工维护，比如每天拷出来</li>
+</ol>
+</li>
+</ul>
+<p>
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="https://pic.downk.cc/item/5f6a9060160a154a678edbd0.png"  alt="794f18b9759fe063c0978938faf1021d.png">
+      </p>
+
+        <h2 id="fork-、copyonwrite"   >
+          <a href="#fork-、copyonwrite" class="heading-link"><i class="fas fa-link"></i></a>fork()、copyonwrite</h2>
+      <p>fork（）函数通过系统调用创建一个与原来进程几乎完全相同的进程</p>
+<p>RDB就是利用了fork()，在继续提供服务的同时，另一个进程进行持久化，创建子进程并不发生复制。父子进程中的值指向的内存地址是同一个，但是当其中一个进程改变这个值时，会复制一份发生改变并将指针指向新的地址，不影响另一个进程，这就是copy on write。</p>
+<p>速度快了，占用空间小了</p>
+<ul>
+<li>copy on write是内核机制</li>
+</ul>
+
+        <h2 id="AOF"   >
+          <a href="#AOF" class="heading-link"><i class="fas fa-link"></i></a>AOF</h2>
+      <p>AOF 是通过保存Redis服务器所执行的写命令来记录数据库状态<br>比如对于如下命令：<br>
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="https://pic.downk.cc/item/5f6a90a6160a154a678ef26b.png"  alt="0e7a158d6187b4ae63d6e9c9e7a5004a.png">
+      </p>
+<ul>
+<li>RDB 持久化方式就是将 str1,str2,str3 这三个键值对保存到 RDB文件中</li>
+<li>AOF 持久化则是将执行的 set,sadd,lpush 三个命令保存到 AOF 文件中</li>
+</ul>
+
+        <h3 id="配置"   >
+          <a href="#配置" class="heading-link"><i class="fas fa-link"></i></a>配置</h3>
+      <p>在 redis.conf 配置文件的 APPEND ONLY MODE 下：<br>
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="https://pic.downk.cc/item/5f6a90a6160a154a678ef267.png"  alt="328d63bce0356e7717c7112cc67c7ddf.png">
+      </p>
+<ol>
+<li><p>appendonly：默认值为no，redis默认是rdb方式持久化，要开启AOF持久化方式，需要将appendonly修改为yes。</p>
+</li>
+<li><p>appendfilename ：aof文件名，默认是”appendonly.aof”</p>
+</li>
+<li><p>appendfsync：aof持久化策略的配置；</p>
+<ol>
+<li>no表示不执行fsync，由操作系统保证数据同步到磁盘，速度最快，但是不太安全；</li>
+<li>always表示每次写入都执行fsync，以保证数据同步到磁盘，效率很低；</li>
+<li>everysec表示每秒执行一次fsync，可能会导致丢失这1s数据。通常选择 everysec ，兼顾安全性和效率，也是默认值。</li>
+</ol>
+</li>
+<li><p>no-appendfsync-on-rewrite：在aof重写或者写入rdb文件的时候，会执行大量IO，此时对于everysec和always的aof模式来说，执行fsync会造成阻塞过长时间，no-appendfsync-on-rewrite默认为no。如果对延迟要求很高的应用，这个字段可以设置为yes，否则还是设置为no，这样对持久化特性来说这是更安全的选择。   设置为yes表示rewrite期间对新写操作不fsync,暂时存在内存中,等rewrite完成后再写入，默认为no，建议yes。Linux的默认fsync策略是30秒。可能丢失30秒数据。默认值为no。</p>
+</li>
+<li><p>auto-aof-rewrite-percentage：默认值100。aof自动重写配置，当目前aof文件大小超过上一次重写的aof文件大小的百分之多少进行重写，即当aof文件增长到一定大小的时候，Redis能够调用bgrewriteaof对日志文件进行重写。当前AOF文件大小是上次日志重写得到AOF文件大小的二倍（设置为100）时，自动启动新的日志重写过程。</p>
+</li>
+<li><p>auto-aof-rewrite-min-size：64mb。设置允许重写的最小aof文件大小，避免了达到约定百分比但尺寸仍然很小的情况还要重写。</p>
+</li>
+<li><p>aof-load-truncated：aof文件可能在尾部是不完整的，当redis启动的时候，aof文件的数据被载入内存。重启可能发生在redis所在的主机操作系统宕机后，尤其在ext4文件系统没有加上data=ordered选项，出现这种现象  redis宕机或者异常终止不会造成尾部不完整现象，可以选择让redis退出，或者导入尽可能多的数据。如果选择的是yes，当截断的aof文件被导入的时候，会自动发布一个log给客户端然后load。如果是no，用户必须手动redis-check-aof修复AOF文件才可以。默认值为 yes。</p>
+</li>
+</ol>
+
+        <h3 id="开启AOF"   >
+          <a href="#开启AOF" class="heading-link"><i class="fas fa-link"></i></a>开启AOF</h3>
+      <p>将 redis.conf 的 appendonly 配置改为 yes 即可。</p>
+
+        <h3 id="AOF-文件恢复"   >
+          <a href="#AOF-文件恢复" class="heading-link"><i class="fas fa-link"></i></a>AOF 文件恢复</h3>
+      <p>重启 Redis 之后就会进行 AOF 文件的载入。　　<br>异常修复命令：redis-check-aof –fix 进行修复</p>
+
+        <h3 id="AOF-重写"   >
+          <a href="#AOF-重写" class="heading-link"><i class="fas fa-link"></i></a>AOF 重写</h3>
+      <p>由于AOF持久化是Redis不断将写命令记录到 AOF 文件中，随着Redis不断的进行，AOF 的文件会越来越大，文件越大，占用服务器内存越大以及 AOF 恢复要求时间越长。<br>为了解决这个问题，Redis新增了重写机制，当AOF文件的大小超过所设定的阈值时，Redis就会启动AOF文件的内容压缩，只保留可以恢复数据的最小指令集。<br>可以使用命令 bgrewriteaof 来重写。</p>
+<p>比如对于如下命令：<br>
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="https://pic.downk.cc/item/5f6a90e0160a154a678f054d.png"  alt="6bacc180b2f3ea7764576f7b6127a287.png">
+      <br>如果不进行 AOF 文件重写，那么 AOF 文件将保存四条 SADD 命令，如果使用AOF 重写，那么AOF 文件中将只会保留下面一条命令：</p>
+<figure class="highlight plain"><div class="table-container"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">sadd animals &quot;dog&quot; &quot;tiger&quot; &quot;panda&quot; &quot;lion&quot; &quot;cat&quot;</span><br></pre></td></tr></table></div></figure>
+<ul>
+<li>默认配置是当AOF文件大小是上次rewrite后大小的一倍且文件大于64M时触发</li>
+</ul>
+<p>Redis 是单线程工作，如果 重写 AOF 需要比较长的时间，那么在重写 AOF 期间，Redis将长时间无法处理其他的命令，这显然是不能忍受的。Redis为了克服这个问题，解决办法是将 AOF 重写程序放到子程序中进行，这样有两个好处：</p>
+<ol>
+<li>子进程进行 AOF 重写期间，服务器进程（父进程）可以继续处理其他命令。　　</li>
+<li>子进程带有父进程的数据副本，使用子进程而不是线程，可以在避免使用锁的情况下，保证数据的安全性。　　</li>
+</ol>
+<p>使用子进程解决了上面的问题，但是新问题也产生了：因为子进程在进行 AOF 重写期间，服务器进程依然在处理其它命令，这新的命令有可能也对数据库进行了修改操作，使得当前数据库状态和重写后的 AOF 文件状态不一致。　　<br>为了解决这个数据状态不一致的问题，Redis 服务器设置了一个 AOF 重写缓冲区，这个缓冲区是在创建子进程后开始使用，当Redis服务器执行一个写命令之后，就会将这个写命令也发送到 AOF 重写缓冲区。<br>当子进程完成 AOF 重写之后，就会给父进程发送一个信号，父进程接收此信号后，就会调用函数将 AOF 重写缓冲区的内容都写到新的 AOF 文件中。这样将 AOF 重写对服务器造成的影响降到了最低。</p>
+
+        <h3 id="AOF的优缺点"   >
+          <a href="#AOF的优缺点" class="heading-link"><i class="fas fa-link"></i></a>AOF的优缺点</h3>
+      <p>优点：</p>
+<ol>
+<li>AOF 持久化的方法提供了多种的同步频率，即使使用默认的同步频率每秒同步一次，Redis 最多也就丢失 1 秒的数据而已(<strong>丢失数据少</strong>)　　</li>
+<li>AOF 文件使用 Redis 命令追加的形式来构造，因此，即使 Redis 只能向 AOF 文件写入命令的片断，使用 redis-check-aof 工具也很容易修正 AOF 文件。</li>
+<li>AOF 文件的格式可读性较强，容易修正。例如，如果我们不小心错用了 FLUSHALL 命令，在重写还没进行时，我们可以手工将最后的 FLUSHALL 命令去掉，然后再使用 AOF 来恢复数据。</li>
+</ol>
+<p>缺点：</p>
+<ol>
+<li>AOF 文件比 RDF 文件体积更大</li>
+<li>虽然 AOF 提供了多种同步的频率，默认情况下，每秒同步一次的频率也具有较高的性能。但在 Redis 的负载较高时，RDB 比 AOF 具好更好的性能保证。（RDB 比 AOF性能高）</li>
+<li>RDB 使用快照的形式来持久化整个 Redis 数据，而 AOF 只是将每次执行的命令追加到 AOF 文件中，因此从理论上说，<strong>RDB 比 AOF 方式更健壮</strong>。官方文档也指出，AOF 的确也存在一些 BUG，这些 BUG 在 RDB 没有存在。 　　</li>
+</ol>
+
+        <h3 id="如何选择AOF-和-RDB"   >
+          <a href="#如何选择AOF-和-RDB" class="heading-link"><i class="fas fa-link"></i></a>如何选择AOF 和 RDB</h3>
+      <p>如果可以忍受一小段时间内数据的丢失，毫无疑问使用 RDB 是最好的，定时生成 RDB 快照（snapshot）非常便于进行数据库备份， 并且 RDB 恢复数据集的速度也要比 AOF 恢复的速度要快，而且使用 RDB 还可以避免 AOF 一些隐藏的 bug；否则就使用 AOF 重写。但是一般情况下建议不要单独使用某一种持久化机制，而是应该两种一起用，在这种情况下,当redis重启的时候会优先载入AOF文件来恢复原始的数据，因为在通常情况下AOF文件保存的数据集要比RDB文件保存的数据集要完整。Redis后期官方可能都有将两种持久化方式整合为一种持久化模型。</p>
+
+        <h2 id="RDB-AOF混合持久化"   >
+          <a href="#RDB-AOF混合持久化" class="heading-link"><i class="fas fa-link"></i></a>RDB-AOF混合持久化</h2>
+      <p>在redis4.0之后，支持RDB-AOF混合持久化方式，这种方式结合了RDB和AOF的优点，既能快速加载又能避免丢失过多的数据。</p>
+<p>配置：aof-use-rdb-preamble设置为yes表示开启，设置为no表示禁用。</p>
+<p>当开启混合持久化时，主进程先fork出子进程将现有内存副本全量以RDB方式写入aof文件中，然后将缓冲区中的增量命令以AOF方式写入aof文件中，写入完成后通知主进程更新相关信息，并将新的含有 RDB和AOF两种格式的aof文件替换旧的aof文件。　　</p>
+<p>简单来说：混合持久化方式产生的文件一部分是RDB格式，一部分是AOF格式。</p>
+<p>缺点就是不能兼容Redis4.0之前版本的备份文件了。</p>
+</div><footer class="post-footer"><div class="post-ending ending"><div class="ending__text">------ 本文结束，感谢您的阅读 ------</div></div><div class="post-copyright copyright"><div class="copyright-author"><span class="copyright-author__name">本文作者: </span><span class="copyright-author__value"><a href="https://bugordemo.github.io">hyf</a></span></div><div class="copyright-link"><span class="copyright-link__name">本文链接: </span><span class="copyright-link__value"><a href="https://bugordemo.github.io/2020/09/23/redis%E7%9A%84%E6%8C%81%E4%B9%85%E5%8C%96RDB%E3%80%81fork%E3%80%81copyonwrite%E3%80%81AOF%E3%80%81RDB-AOF%E6%B7%B7%E5%90%88%E4%BD%BF%E7%94%A8/">https://bugordemo.github.io/2020/09/23/redis%E7%9A%84%E6%8C%81%E4%B9%85%E5%8C%96RDB%E3%80%81fork%E3%80%81copyonwrite%E3%80%81AOF%E3%80%81RDB-AOF%E6%B7%B7%E5%90%88%E4%BD%BF%E7%94%A8/</a></span></div><div class="copyright-notice"><span class="copyright-notice__name">版权声明: </span><span class="copyright-notice__value">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" rel="external nofollow" target="_blank">BY-NC-SA</a> 许可协议。转载请注明出处！</span></div></div><div class="post-tags"><span class="post-tags-item"><span class="post-tags-item__icon"><i class="fas fa-tag"></i></span><a class="post-tags-item__link" href="https://bugordemo.github.io/tags/Redis/">Redis</a></span></div><div class="post-reward reward"><div class="reward-button">请我喝杯咖啡~</div><div class="reward-qrcode"><span class="reward-qrcode-alipay"><img class="reward-qrcode-alipay__img" src="/assets/alipay.jpg"><div class="reward-qrcode-alipay__text">支付宝打赏</div></span><span class="reward-qrcode-wechat"><img class="reward-qrcode-wechat__img" src="/assets/wechat.jpg"><div class="reward-qrcode-wechat__text">微信打赏</div></span></div></div><nav class="post-paginator paginator"><div class="paginator-prev"><a class="paginator-prev__link" href="/2020/09/23/redis%E7%9A%84%E9%9B%86%E7%BE%A4%EF%BC%9A%E4%B8%BB%E4%BB%8E%E5%A4%8D%E5%88%B6%E3%80%81CAP/"><span class="paginator-prev__icon"><i class="fas fa-angle-left"></i></span><span class="paginator-prev__text">Redis的集群：主从复制、CAP</span></a></div><div class="paginator-next"><a class="paginator-next__link" href="/2020/09/23/Redis%E7%9A%84%E6%B6%88%E6%81%AF%E8%AE%A2%E9%98%85%E3%80%81pipeline%E3%80%81%E4%BA%8B%E5%8A%A1%E3%80%81modules%E3%80%81%E5%B8%83%E9%9A%86%E8%BF%87%E6%BB%A4%E5%99%A8%E3%80%81%E7%BC%93%E5%AD%98LRU/"><span class="paginator-prev__text">Redis的消息订阅、pipeline、事务、modules、布隆过滤器、缓存LRU</span><span class="paginator-next__icon"><i class="fas fa-angle-right"></i></span></a></div></nav></footer></div></div></div><div class="sidebar-wrap" id="sidebar-wrap"><aside class="sidebar" id="sidebar"><div class="sidebar-nav"><span class="sidebar-nav-toc current">文章目录</span><span class="sidebar-nav-ov">站点概览</span></div><section class="sidebar-toc"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#RDB%E6%8C%81%E4%B9%85%E5%8C%96"><span class="toc-number">1.</span> <span class="toc-text">
+          RDB持久化</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%A7%A6%E5%8F%91%E6%96%B9%E5%BC%8F"><span class="toc-number">1.1.</span> <span class="toc-text">
+          触发方式</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%81%A2%E5%A4%8D%E6%95%B0%E6%8D%AE"><span class="toc-number">1.2.</span> <span class="toc-text">
+          恢复数据</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BC%98%E5%8A%A3%E5%8A%BF"><span class="toc-number">1.3.</span> <span class="toc-text">
+          优劣势</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#fork-%E3%80%81copyonwrite"><span class="toc-number">2.</span> <span class="toc-text">
+          fork()、copyonwrite</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#AOF"><span class="toc-number">3.</span> <span class="toc-text">
+          AOF</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%85%8D%E7%BD%AE"><span class="toc-number">3.1.</span> <span class="toc-text">
+          配置</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%BC%80%E5%90%AFAOF"><span class="toc-number">3.2.</span> <span class="toc-text">
+          开启AOF</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#AOF-%E6%96%87%E4%BB%B6%E6%81%A2%E5%A4%8D"><span class="toc-number">3.3.</span> <span class="toc-text">
+          AOF 文件恢复</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#AOF-%E9%87%8D%E5%86%99"><span class="toc-number">3.4.</span> <span class="toc-text">
+          AOF 重写</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#AOF%E7%9A%84%E4%BC%98%E7%BC%BA%E7%82%B9"><span class="toc-number">3.5.</span> <span class="toc-text">
+          AOF的优缺点</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%A6%82%E4%BD%95%E9%80%89%E6%8B%A9AOF-%E5%92%8C-RDB"><span class="toc-number">3.6.</span> <span class="toc-text">
+          如何选择AOF 和 RDB</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#RDB-AOF%E6%B7%B7%E5%90%88%E6%8C%81%E4%B9%85%E5%8C%96"><span class="toc-number">4.</span> <span class="toc-text">
+          RDB-AOF混合持久化</span></a></li></ol></section><!-- ov = overview--><section class="sidebar-ov hide"><div class="sidebar-ov-author"><div class="sidebar-ov-author__avatar"><img class="sidebar-ov-author__avatar_img" src="https://wx2.sbimg.cn/2020/09/22/GJ1jY.md.jpg" alt="avatar"></div><p class="sidebar-ov-author__text">write code and love life</p></div><div class="sidebar-ov-social"><a class="sidebar-ov-social-item" href="https://github.com/bugORdemo" target="_blank" rel="noopener" data-popover="Github" data-popover-pos="up"><span class="sidebar-ov-social-item__icon"><i class="fab fa-github"></i></span></a><a class="sidebar-ov-social-item" href="NullPointerEXC-H" target="_blank" rel="noopener" data-popover="微信" data-popover-pos="up"><span class="sidebar-ov-social-item__icon"><i class="fab fa-weixin"></i></span></a><a class="sidebar-ov-social-item" href="798968439" target="_blank" rel="noopener" data-popover="QQ" data-popover-pos="up"><span class="sidebar-ov-social-item__icon"><i class="fab fa-qq"></i></span></a></div><div class="sidebar-ov-cc"><a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank" rel="noopener" data-popover="知识共享许可协议" data-popover-pos="up"><img src="/images/cc-by-nc-sa.svg"></a></div></section><div class="sidebar-reading"><div class="sidebar-reading-info"><span class="sidebar-reading-info__text">你已阅读了 </span><span class="sidebar-reading-info__num">0</span></div><div class="sidebar-reading-line"></div></div></aside></div><div class="clearfix"></div></div></main><footer class="footer" id="footer"><div class="footer-inner"><div><span>Copyright © 2020</span><span class="footer__icon"><i class="fas fa-heart"></i></span><span><a href="https://github.com/bugORdemo" rel="noopener" target="_blank">bugORdemo</a></span></div><div><span>由 <a href="http://hexo.io/" title="Hexo" target="_blank" rel="noopener">Hexo</a> 强力驱动</span><span> v5.2.0</span><span class="footer__devider">|</span><span>主题 - <a href="https://github.com/liuyib/hexo-theme-stun/" title="Stun" target="_blank" rel="noopener">Stun</a></span><span> v2.1.1</span></div><div class="busuanzi"><span class="busuanzi-siteuv"><span class="busuanzi-siteuv__icon"><i class="fas fa-user"></i></span><span class="busuanzi-siteuv__info">访问人数</span><span class="busuanzi-siteuv__value" id="busuanzi_value_site_uv"></span></span><span class="busuanzi-sitepv"><span class="busuanzi-siteuv__icon"><i class="fas fa-eye"></i></span><span class="busuanzi-siteuv__info">浏览总量</span><span class="busuanzi-siteuv__value" id="busuanzi_value_site_pv"></span></span></div></div></footer><div class="loading-bar" id="loading-bar"><div class="loading-bar__progress"></div></div><div class="back2top" id="back2top"><span class="back2top__icon"><i class="fas fa-rocket"></i></span></div></div><script src="https://cdn.jsdelivr.net/npm/jquery@v3.4.1/dist/jquery.min.js"></script><script src="https://cdn.jsdelivr.net/npm/velocity-animate@1.5.2/velocity.min.js"></script><script src="https://cdn.jsdelivr.net/npm/velocity-animate@1.5.2/velocity.ui.min.js"></script><script src="https://cdn.jsdelivr.net/npm/ribbon.js@latest/dist/ribbon.min.js" size="120" alpha="0.6" zIndex="-1"></script><script src="https://cdn.jsdelivr.net/gh/fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.js"></script><script src="https://cdn.jsdelivr.net/npm/masonry-layout@4.2.2/dist/masonry.pkgd.min.js"></script><script src="https://cdn.jsdelivr.net/npm/lazyload@2.0.0-rc.2/lazyload.min.js"></script><script src="https://cdn.jsdelivr.net/npm/pjax@latest/pjax.min.js"></script><script>window.addEventListener('DOMContentLoaded', function () {
+  var pjax = new Pjax({"selectors":["head title","#main",".pjax-reload"],"history":true,"scrollTo":false,"scrollRestoration":false,"cacheBust":false,"debug":false,"currentUrlFullReload":false,"timeout":0});
+  // 加载进度条的计时器
+  var loadingTimer = null;
+
+  // 重置页面 Y 方向上的滚动偏移量
+  document.addEventListener('pjax:send', function () {
+    $('.header-nav-menu').removeClass('show');
+    if (CONFIG.pjax && CONFIG.pjax.avoidBanner) {
+      $('html').velocity('scroll', {
+        duration: 500,
+        offset: $('#header').height(),
+        easing: 'easeInOutCubic'
+      });
+    }
+
+    var loadingBarWidth = 20;
+    var MAX_LOADING_WIDTH = 95;
+
+    $('.loading-bar').addClass('loading');
+    $('.loading-bar__progress').css('width', loadingBarWidth + '%');
+    clearInterval(loadingTimer);
+    loadingTimer = setInterval(function () {
+      loadingBarWidth += 3;
+      if (loadingBarWidth > MAX_LOADING_WIDTH) {
+        loadingBarWidth = MAX_LOADING_WIDTH;
+      }
+      $('.loading-bar__progress').css('width', loadingBarWidth + '%');
+    }, 500);
+  }, false);
+
+  window.addEventListener('pjax:complete', function () {
+    clearInterval(loadingTimer);
+    $('.loading-bar__progress').css('width', '100%');
+    $('.loading-bar').removeClass('loading');
+    setTimeout(function () {
+      $('.loading-bar__progress').css('width', '0');
+    }, 400);
+    $('link[rel=prefetch], script[data-pjax-rm]').each(function () {
+      $(this).remove();
+    });
+    $('script[data-pjax], #pjax-reload script').each(function () {
+      $(this).parent().append($(this).remove());
+    });
+
+    if (Stun.utils.pjaxReloadBoot) {
+      Stun.utils.pjaxReloadBoot();
+    }
+    if (Stun.utils.pjaxReloadScroll) {
+      Stun.utils.pjaxReloadScroll();
+    }
+    if (Stun.utils.pjaxReloadSidebar) {
+      Stun.utils.pjaxReloadSidebar();
+    }
+    if (false) {
+      if (Stun.utils.pjaxReloadHeader) {
+        Stun.utils.pjaxReloadHeader();
+      }
+      if (Stun.utils.pjaxReloadScrollIcon) {
+        Stun.utils.pjaxReloadScrollIcon();
+      }
+      if (Stun.utils.pjaxReloadLocalSearch) {
+        Stun.utils.pjaxReloadLocalSearch();
+      }
+    }
+  }, false);
+}, false);</script><div id="pjax-reload"><script src="https://cdn.jsdelivr.net/npm/quicklink@1.0.1/dist/quicklink.umd.js"></script><script>function initQuicklink() {
+  quicklink({
+    timeout: '10000',
+    priority: true,
+    ignores: [uri => uri.includes('#'), uri => uri === 'https://bugordemo.github.io/2020/09/23/redis%E7%9A%84%E6%8C%81%E4%B9%85%E5%8C%96RDB%E3%80%81fork%E3%80%81copyonwrite%E3%80%81AOF%E3%80%81RDB-AOF%E6%B7%B7%E5%90%88%E4%BD%BF%E7%94%A8/', /\/api\/?/,uri => uri.includes('.xml'),uri => uri.includes('.zip'),(uri, el) => el.hasAttribute('nofollow'),(uri, el) => el.hasAttribute('noprefetch')]
+  });
+}
+
+if (true || false) {
+  initQuicklink();
+} else {
+  window.addEventListener('DOMContentLoaded', initQuicklink, false);
+}</script><script src="https://cdn.jsdelivr.net/gh/sukkaw/busuanzi@latest/bsz.pure.mini.js" async></script></div><script src="/js/utils.js?v=2.1.1"></script><script src="/js/stun-boot.js?v=2.1.1"></script><script src="/js/scroll.js?v=2.1.1"></script><script src="/js/header.js?v=2.1.1"></script><script src="/js/sidebar.js?v=2.1.1"></script><script src="/live2dw/lib/L2Dwidget.min.js?094cbace49a39548bed64abff5988b05"></script><script>L2Dwidget.init({"model":{"jsonPath":"/live2dw/assets/koharu.model.json"},"display":{"position":"right","width":200,"height":350},"mobile":{"show":false},"log":false,"pluginJsPath":"lib/","pluginModelPath":"assets/","pluginRootPath":"live2dw/","tagMode":false});</script></body></html>

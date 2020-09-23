@@ -1,0 +1,364 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="format-detection" content="telephone=no"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black"><link rel="icon" href="/assets/bilibili.jpg?v=2.1.1" type="image/png" sizes="32x32"><meta name="description" content="Redis的类型                           string        string&amp;数值&amp;bitmap">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Redis的类型及常用命令">
+<meta property="og:url" content="https://bugordemo.github.io/2020/09/23/Redis%E7%9A%84%E7%B1%BB%E5%9E%8B%E5%8F%8A%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/index.html">
+<meta property="og:site_name" content="DemoOrBug">
+<meta property="og:description" content="Redis的类型                           string        string&amp;数值&amp;bitmap">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://pic.downk.cc/item/5f6a8e15160a154a678de6db.png">
+<meta property="og:image" content="https://pic.downk.cc/item/5f6a8e15160a154a678de6c5.png">
+<meta property="og:image" content="https://pic.downk.cc/item/5f6a8e15160a154a678de6c7.png">
+<meta property="og:image" content="https://pic.downk.cc/item/5f6a8e15160a154a678de6cb.png">
+<meta property="og:image" content="https://pic.downk.cc/item/5f6a8e15160a154a678de6d1.png">
+<meta property="og:image" content="https://pic.downk.cc/item/5f6a8e51160a154a678df937.png">
+<meta property="og:image" content="https://pic.downk.cc/item/5f6a8e78160a154a678e0746.png">
+<meta property="og:image" content="https://pic.downk.cc/item/5f6a8e78160a154a678e073e.png">
+<meta property="og:image" content="https://pic.downk.cc/item/5f6a8e9c160a154a678e14a1.png">
+<meta property="og:image" content="https://pic.downk.cc/item/5f6a8e9c160a154a678e14a3.png">
+<meta property="og:image" content="https://pic.downk.cc/item/5f6a8e9c160a154a678e14a8.png">
+<meta property="og:image" content="https://pic.downk.cc/item/5f6a8ec8160a154a678e254a.png">
+<meta property="og:image" content="https://pic.downk.cc/item/5f6a8ec8160a154a678e2541.png">
+<meta property="og:image" content="https://pic.downk.cc/item/5f6a8ec8160a154a678e2543.png">
+<meta property="og:image" content="https://pic.downk.cc/item/5f6a8f06160a154a678e3b9f.png">
+<meta property="og:image" content="https://pic.downk.cc/item/5f6a8f06160a154a678e3ba2.png">
+<meta property="og:image" content="https://pic.downk.cc/item/5f6a8f06160a154a678e3baa.png">
+<meta property="og:image" content="https://pic.downk.cc/item/5f6a8f06160a154a678e3b9d.png">
+<meta property="article:published_time" content="2020-09-22T23:50:27.000Z">
+<meta property="article:modified_time" content="2020-09-22T23:56:58.636Z">
+<meta property="article:author" content="hyf">
+<meta property="article:tag" content="Redis">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://pic.downk.cc/item/5f6a8e15160a154a678de6db.png"><title>Redis的类型及常用命令 | DemoOrBug</title><link ref="canonical" href="https://bugordemo.github.io/2020/09/23/Redis%E7%9A%84%E7%B1%BB%E5%9E%8B%E5%8F%8A%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/"><link rel="dns-prefetch" href="https://cdn.jsdelivr.net"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.12.1/css/all.min.css" type="text/css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.css" type="text/css"><link rel="stylesheet" href="/css/index.css?v=2.1.1"><script>var Stun = window.Stun || {};
+var CONFIG = {
+  root: '/',
+  algolia: undefined,
+  fontIcon: {"prompt":{"success":"fas fa-check-circle","info":"fas fa-arrow-circle-right","warning":"fas fa-exclamation-circle","error":"fas fa-times-circle"},"copyBtn":"fas fa-copy"},
+  sidebar: {"offsetTop":"20px","tocMaxDepth":5},
+  header: {"enable":true,"showOnPost":true,"scrollDownIcon":true},
+  postWidget: {"endText":true},
+  nightMode: {"enable":true},
+  back2top: {"enable":true},
+  codeblock: {"style":"carbon","highlight":"light","wordWrap":false},
+  reward: true,
+  fancybox: true,
+  zoomImage: {"gapAside":"20px"},
+  galleryWaterfall: {"colWidth":"220px","gapX":"10px"},
+  lazyload: true,
+  pjax: {"avoidBanner":true},
+  externalLink: {"icon":{"enable":true,"name":"fas fa-external-link-alt"}},
+  shortcuts: {"switchPost":true},
+  prompt: {"copyButton":"复制","copySuccess":"复制成功","copyError":"复制失败"},
+  sourcePath: {"js":"js","css":"css","images":"images"},
+};
+
+window.CONFIG = CONFIG;</script><meta name="generator" content="Hexo 5.2.0"></head><body><div class="container" id="container"><header class="header" id="header"><div class="header-inner"><nav class="header-nav header-nav--fixed"><div class="header-nav-inner"><div class="header-nav-menubtn"><i class="fas fa-bars"></i></div><div class="header-nav-menu"><div class="header-nav-menu-item"><a class="header-nav-menu-item__link" href="/"><span class="header-nav-menu-item__icon"><i class="fas fa-home"></i></span><span class="header-nav-menu-item__text">首页</span></a></div><div class="header-nav-menu-item"><a class="header-nav-menu-item__link" href="javascript:;" onclick="return false;"><span class="header-nav-menu-item__icon"><i class="fas fa-folder-open"></i></span><span class="header-nav-menu-item__text">文章</span></a><div class="header-nav-submenu"><div class="header-nav-submenu-item"><a class="header-nav-submenu-item__link" href="/archives/"><span class="header-nav-submenu-item__icon"><i class="fas fa-folder-open"></i></span><span class="header-nav-submenu-item__text">归档</span></a></div><div class="header-nav-submenu-item"><a class="header-nav-submenu-item__link" href="/categories/"><span class="header-nav-submenu-item__icon"><i class="fas fa-layer-group"></i></span><span class="header-nav-submenu-item__text">分类</span></a></div><div class="header-nav-submenu-item"><a class="header-nav-submenu-item__link" href="/tags/"><span class="header-nav-submenu-item__icon"><i class="fas fa-tags"></i></span><span class="header-nav-submenu-item__text">标签</span></a></div></div></div></div><div class="header-nav-mode"><div class="mode"><div class="mode-track"><span class="mode-track-moon"></span><span class="mode-track-sun"></span></div><div class="mode-thumb"></div></div></div></div></nav><div class="header-banner"><div class="header-banner-info"><div class="header-banner-info__title">DemoOrBug</div><div class="header-banner-info__subtitle">懒惰、急躁、傲慢 ———— 当代程序员美德</div></div><div class="header-banner-arrow"><div class="header-banner-arrow__icon"><i class="fas fa-angle-down"></i></div></div></div></div></header><main class="main" id="main"><div class="main-inner"><div class="content-wrap" id="content-wrap"><div class="content" id="content"><!-- Just used to judge whether it is an article page--><div id="is-post"></div><div class="post"><header class="post-header"><h1 class="post-title">Redis的类型及常用命令</h1><div class="post-meta"><span class="post-meta-item post-meta-item--createtime"><span class="post-meta-item__icon"><i class="far fa-calendar-plus"></i></span><span class="post-meta-item__info">发表于</span><span class="post-meta-item__value">2020-09-23</span></span><span class="post-meta-item post-meta-item--updatetime"><span class="post-meta-item__icon"><i class="far fa-calendar-check"></i></span><span class="post-meta-item__info">更新于</span><span class="post-meta-item__value">2020-09-23</span></span><span class="post-meta-item post-meta-item--wordcount"><span class="post-meta-item__icon"><i class="far fa-file-word"></i></span><span class="post-meta-item__info">字数统计</span><span class="post-meta-item__value">1.9k</span></span><span class="post-meta-item post-meta-item--readtime"><span class="post-meta-item__icon"><i class="far fa-clock"></i></span><span class="post-meta-item__info">阅读时长</span><span class="post-meta-item__value">12分</span></span><span class="post-meta-item post-meta-item--visitors"><span class="post-meta-item__icon"><i class="fas fa-eye"></i></span><span class="post-meta-item__info">阅读次数</span><span class="post-meta-item__value" id="busuanzi_value_page_pv"></span></span></div></header><div class="post-body">
+        <h1 id="Redis的类型"   >
+          <a href="#Redis的类型" class="heading-link"><i class="fas fa-link"></i></a>Redis的类型</h1>
+      
+        <h2 id="string"   >
+          <a href="#string" class="heading-link"><i class="fas fa-link"></i></a>string</h2>
+      <ul>
+<li><strong>string&amp;数值&amp;bitmap</strong></li>
+</ul>
+<a id="more"></a>
+
+<ol>
+<li><p>set key value  例：set k1 hello<br> 
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="https://pic.downk.cc/item/5f6a8e15160a154a678de6db.png"  alt="b5b5655ea23d232e9fe869828165f34d.png">
+      <br> nx：不存在的时候才能设置（新增）<br> xx：存在的时候才能设置（修改）<br> 
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="https://pic.downk.cc/item/5f6a8e15160a154a678de6c5.png"  alt="6ae93516478f2dd52454deebeca93817.png">
+      <br> mset 设置多个值 例：mset k3 a k4 b</p>
+</li>
+<li><p>get key 例：get k1<br> mget 获取多个值<br> 
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="https://pic.downk.cc/item/5f6a8e15160a154a678de6c7.png"  alt="7153ffbe5406c28b077f93e1d4a85492.png">
+      </p>
+</li>
+<li><p>append key 追加<br> 
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="https://pic.downk.cc/item/5f6a8e15160a154a678de6cb.png"  alt="d56a1e44049762236816ea5ef10c7f95.png">
+      </p>
+</li>
+<li><p>getrange key 取某一段字符串<br> 
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="https://pic.downk.cc/item/5f6a8e15160a154a678de6d1.png"  alt="9c76036a96ab51f0bb46f23bb413bfd9.png">
+      <br> 6和10代表取第六位到第十位，从0开始。-1代表反向索引，从后往前数-1是最后一位-2是倒数第二位</p>
+</li>
+<li><p>setrange key<br> 
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="https://pic.downk.cc/item/5f6a8e51160a154a678df937.png"  alt="2aac44f3a577a4bb03f9cad9080809f4.png">
+      <br> 代表从第六位开始将字符串替换</p>
+</li>
+<li><p>strlen key 查询字符串长度</p>
+</li>
+<li><p>type k1 获取k1的类型<br>  如果set k1 99，也是string类型的</p>
+</li>
+<li><p>object encoding k1<br> 此时显示k1的编码类型，是int</p>
+</li>
+<li><p>incr key 对key +1<br> increby key 10 对key加10，写多少加多少<br> increbyfloat key 0.5 对key加一个浮点数0.5<br>10 decr key 对key -1<br> 同上</p>
+</li>
+<li><p>getset name new_cxx 设置值，返回旧值</p>
+</li>
+<li><p>setbit 对位进行set<br>setbit k1 1 1 代表将set一个key是k1的，第一位是1的数（0100 0000）。长度为1，如果setbit k1 9 1，长度就是2，k1就是0100 0000,0100 0000</p>
+</li>
+<li><p>bitcount key 查询二进制的1出现了几次<br>bitcount k1 0 1 从第0个到第一个<strong>字节</strong>中查询<strong>二进制1</strong>出现了几次</p>
+</li>
+<li><p>bitop 按位操作<br>bitop and andkey k1 k2 将k1 k2做and操作(按位与)并将结果赋值给andkey<br>bitop or orkey k1 k2 将k1 k2做and操作(按位或)并将结果赋值给orkey</p>
+
+        <h3 id="数值型有什么用-举例"   >
+          <a href="#数值型有什么用-举例" class="heading-link"><i class="fas fa-link"></i></a>数值型有什么用 举例</h3>
+      <p>
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="https://pic.downk.cc/item/5f6a8e78160a154a678e0746.png"  alt="4e14c4326ae611be0afcfa7fea71b8ac.png">
+      </p>
+</li>
+</ol>
+
+        <h3 id="位运算有什么用-举例"   >
+          <a href="#位运算有什么用-举例" class="heading-link"><i class="fas fa-link"></i></a>位运算有什么用 举例</h3>
+      <p>
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="https://pic.downk.cc/item/5f6a8e78160a154a678e073e.png"  alt="5acfbf691ed97de816c3282010db1163.png">
+      <br>比mysql快，占用空间还小</p>
+
+        <h2 id="List"   >
+          <a href="#List" class="heading-link"><i class="fas fa-link"></i></a>List</h2>
+      <p><strong>可重复出现并有序（插入有序，不是去做排序）</strong></p>
+<ol>
+<li><p>lpush mylist a b c  左插入，结果是c,b,a</p>
+</li>
+<li><p>rpush mylist x y z  右插入，结果是x,y,z</p>
+</li>
+<li><p>lpop mylist  从左边弹出元素，就是获取list[0]，但是弹出就没了</p>
+</li>
+<li><p>rpop mylist  从右边弹出元素，就是list[-1]，但是弹出就没了</p>
+</li>
+<li><p>lrange mylist 0 -1  获取数据集合，从第0个到第-1个，-1是逆向索引，就是最后一个，倒着数</p>
+</li>
+<li><p>lindex mylist 2  获取指定索引的值，-1取最后一个</p>
+</li>
+<li><p>lset mylist 2 n 根据索引设值，将所因为2的值设置为n</p>
+</li>
+<li><p>lrem mylist count value  删除值<br> 例：lrem list1 2 a 删除名为list1的list中的2个值为a的元素</p>
+<pre><code> count &gt; 0 : 从表头开始向表尾搜索，移除与 VALUE 相等的元素，数量为COUNT
+ count &lt; 0 : 从表尾开始向表头搜索，移除与 VALUE 相等的元素，数量为COUNT的绝对值。
+ count = 0 : 移除表中所有与 VALUE 相等的值。</code></pre>
+</li>
+<li><p>linsert mylist before/after a  插入<br> 例：linsert list1 before a 1 在list1中的值为a的元素前插入一个1</p>
+<pre><code> after表示在a之后插入
+ **如果有相同元素则在第一个元素前后插入**</code></pre>
+</li>
+<li><p>llen mylist  统计有多少元素，获取长度</p>
+</li>
+<li><p>ltrim mylist 2 4 删除两端的元素，即删除[0-2)以及(4-最后]的元素，只保留中间的</p>
+</li>
+<li><p>blpop 移出并获取列表的第一个元素， 如果列表没有元素会阻塞列表直到等待超时或发现可弹出元素为止<br>例：BLPOP list1 100 操作会被阻塞，如果list1存在数据则会返回元素所属的key和第一个元素，否则在等待100秒后会返回 nil，如果时间设置0则会一直阻塞</p>
+</li>
+<li><p>rpoplpush list list2     转移列表的数据</p>
+</li>
+</ol>
+<p>
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="https://pic.downk.cc/item/5f6a8e9c160a154a678e14a1.png"  alt="e1389ce108466f6e5acaec9f6507fff5.png">
+      </p>
+
+        <h2 id="hash"   >
+          <a href="#hash" class="heading-link"><i class="fas fa-link"></i></a>hash</h2>
+      <ol>
+<li><p>hset myhash name xx 向名为myhash的hash结构中存一对键值对<br> hmset myhash age 25 address beijing向已有的myhash中再存入键值对</p>
+</li>
+<li><p>hget myhash name 从myhash中取键值对，取key为name的，结果是xx<br> hmget myhash name age address 从myhash中取多对键值对</p>
+</li>
+<li><p>hkeys myhash 取出所有key</p>
+</li>
+<li><p>hvals myhash 取出所有value</p>
+</li>
+<li><p>hgetall myhash 取所有的键值对，有key也有value</p>
+</li>
+<li><p>hincrby myhash age 1 递增<br> hincrbyfloat myhash age 0.5 加浮点数0.5<br> 没有减法，需要减就加负数</p>
+</li>
+<li><p>hexists myhash name 查看哈希表的指定字段是否存在，如果有，返回1。没有或key不存在，返回0 </p>
+</li>
+<li><p>hsetnx myhash score 100 为哈希表中不存在的的字段赋值。如果哈希表不存在，一个新的哈希表被创建并进行HSET 操作。如果字段已经存在于哈希表中，操作无效。如果key不存在，一个新哈希表被创建并执行 HSETNX 命令。成功返回1。如果给定字段已经存在且没有操作被执行，返回0</p>
+</li>
+<li><p>hdel myhash name 删除哈希表key中的一个或多个指定字段</p>
+</li>
+<li><p>hlen myhash 获取哈希表中字段的数量</p>
+</li>
+<li><p>HSETNX myhash field1 a 为哈希表中不存在的的字段赋值，如果哈希表不存在，创建并赋值，已存在则不做任何操作</p>
+</li>
+</ol>
+<p>
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="https://pic.downk.cc/item/5f6a8e9c160a154a678e14a3.png"  alt="5971146e5c4afe110fd5587a8497b251.png">
+      </p>
+
+        <h2 id="set"   >
+          <a href="#set" class="heading-link"><i class="fas fa-link"></i></a>set</h2>
+      <p><strong>无序，去重</strong></p>
+<ol>
+<li><p>sadd myset a b c a d 添加元素，结果是四个，a去重后只有一个</p>
+</li>
+<li><p>srem myset a c 删除元素，结果是剩b，d</p>
+</li>
+<li><p>smembers myset 获取所有数据</p>
+</li>
+<li><p>sdiff | sinter | sunion 集合间运算：差集 | 交集 | 并集<br> 例：sinter k1 k2 对k1 k2做交集运算，返回素有交集元素，k1是1,2.k2是2,3则返回2<br> sinterstore k3 k1 k2 对k1 k2做交集运算并将结果写到k3中<br> 其余的加store也是一样，注意差集的顺序</p>
+</li>
+<li><p>srandmember key  count 随机获取集合中的元素</p>
+<ol>
+<li>正数：取出一个去重的结果集（不能超过已有集，超过则返回整个已有集）</li>
+<li>负数：取出一个带重复的结果集</li>
+<li>0，不返回</li>
+</ol>
+</li>
+<li><p>spop  从集合中弹出一个元素，弹出就没有了</p>
+</li>
+<li><p>sismember myset set1 判断元素是否在集合中，是返回 1，否则返回0</p>
+</li>
+<li><p>scard key_name 返回集合中元素的数量</p>
+</li>
+</ol>
+<p>
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="https://pic.downk.cc/item/5f6a8e9c160a154a678e14a8.png"  alt="0dd8820c313b7e2dcf21d968902c2a98.png">
+      </p>
+
+        <h2 id="zset（sorted-set）"   >
+          <a href="#zset（sorted-set）" class="heading-link"><i class="fas fa-link"></i></a>zset（sorted_set）</h2>
+      <p><strong>有序，底层实现的数据结构是skip list（跳跃表）</strong></p>
+<p><strong>z后加rev为反向</strong></p>
+<ol>
+<li>zadd zset 8 apple 2 banana 3 orange 将一个或多个元素及其分数值加入到有序集当中<ol>
+<li>如果某个成员已经是有序集的成员，那么更新这个成员的分数值，并通过重新插入这个成员元素，来保证该成员在正确的位置上。</li>
+<li>分数值可以是整数值或双精度浮点数。</li>
+<li>如果有序集合 key 不存在，则创建一个空的有序集并执行 ZADD 操作。</li>
+<li>当 key 存在但不是有序集类型时，返回一个错误。</li>
+</ol>
+</li>
+<li>zrange zset 0 -1 withscores 返回有序集中，指定区间内的成员，并按分数值递增(从小到大)来排序，相同分数值按字典序排列<ul>
+<li>反向排序用zrevrange</li>
+<li>加withscores显示分值，不加不显示</li>
+</ul>
+</li>
+<li>zrangebyscore zset 1 5 withscores 取指定分数区间的成员列表。其他跟zrange一样</li>
+<li>zscore zset apple 通过元素获取分数</li>
+<li>zrank zset apple  返回有序集中指定成员的排名</li>
+<li>zincrby zset 2 apple 增长分数，将apple的分数增加2，同时排序会根据新的分数排<br> 场景：排行榜</li>
+<li>zunionstore/zdiffstore/zinterstore 并集/差集/交集 以并集为例<br> zunionstore unkey 2 k1 k2 将k1 k2取并集将结果放到unkey中，默认结果集中某个成员的分数值是所有给定集下该成员分数值之和<br> 
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="https://pic.downk.cc/item/5f6a8ec8160a154a678e254a.png"  alt="45df43a8e9581b26e83b2b3a9d2efeeb.png">
+      <br> zunionstore unkey1 2 k1 k2 weights 1 0.5 在上面的基础上，增加权重，k1的分数乘1，k2的分数乘0.5然后相加<br> 
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="https://pic.downk.cc/item/5f6a8ec8160a154a678e2541.png"  alt="d2e666e3662df8252d6f29af246e7a78.png">
+      <br> zunionstore unkey1 2 k1 k2 aggregate max 取最大值，不取和了，min取最小值<br> 
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="https://pic.downk.cc/item/5f6a8ec8160a154a678e2543.png"  alt="8382d57b3c49afb9a66076362f11f760.png">
+      </li>
+<li>zcard zset  计算集合中元素的数量</li>
+<li>zcount zset 计算有序集合中指定分数区间的成员数量<br> 
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="https://pic.downk.cc/item/5f6a8f06160a154a678e3b9f.png"  alt="1837c424fa5bc49eb06256f44e738fd2.png">
+      </li>
+<li>zrem zset one two 移除有序集中的一个或多个成员</li>
+<li>zremrangebyrank zset 0 1  移除有序集中，指定排名(rank)区间内的所有成员<br>
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="https://pic.downk.cc/item/5f6a8f06160a154a678e3ba2.png"  alt="af472ad835dbf0146354f1a239bb1422.png">
+      </li>
+<li>zremrangebyscore zset 0 1 移除有序集中，指定分数（score）区间内的所有成员。<br>
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="https://pic.downk.cc/item/5f6a8f06160a154a678e3baa.png"  alt="82825c6d37a40ed1cca5042827224126.png">
+      </li>
+</ol>
+<p>
+        <img   class="lazyload lazyload-gif"
+          src="/images/loading.svg" data-src="https://pic.downk.cc/item/5f6a8f06160a154a678e3b9d.png"  alt="7ffb9f63d7d0629d62b9a794c4ae674d.png">
+      </p>
+</div><footer class="post-footer"><div class="post-ending ending"><div class="ending__text">------ 本文结束，感谢您的阅读 ------</div></div><div class="post-copyright copyright"><div class="copyright-author"><span class="copyright-author__name">本文作者: </span><span class="copyright-author__value"><a href="https://bugordemo.github.io">hyf</a></span></div><div class="copyright-link"><span class="copyright-link__name">本文链接: </span><span class="copyright-link__value"><a href="https://bugordemo.github.io/2020/09/23/Redis%E7%9A%84%E7%B1%BB%E5%9E%8B%E5%8F%8A%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/">https://bugordemo.github.io/2020/09/23/Redis%E7%9A%84%E7%B1%BB%E5%9E%8B%E5%8F%8A%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/</a></span></div><div class="copyright-notice"><span class="copyright-notice__name">版权声明: </span><span class="copyright-notice__value">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" rel="external nofollow" target="_blank">BY-NC-SA</a> 许可协议。转载请注明出处！</span></div></div><div class="post-tags"><span class="post-tags-item"><span class="post-tags-item__icon"><i class="fas fa-tag"></i></span><a class="post-tags-item__link" href="https://bugordemo.github.io/tags/Redis/">Redis</a></span></div><div class="post-reward reward"><div class="reward-button">请我喝杯咖啡~</div><div class="reward-qrcode"><span class="reward-qrcode-alipay"><img class="reward-qrcode-alipay__img" src="/assets/alipay.jpg"><div class="reward-qrcode-alipay__text">支付宝打赏</div></span><span class="reward-qrcode-wechat"><img class="reward-qrcode-wechat__img" src="/assets/wechat.jpg"><div class="reward-qrcode-wechat__text">微信打赏</div></span></div></div><nav class="post-paginator paginator"><div class="paginator-prev"><a class="paginator-prev__link" href="/2020/09/23/Redis%E7%9A%84%E6%B6%88%E6%81%AF%E8%AE%A2%E9%98%85%E3%80%81pipeline%E3%80%81%E4%BA%8B%E5%8A%A1%E3%80%81modules%E3%80%81%E5%B8%83%E9%9A%86%E8%BF%87%E6%BB%A4%E5%99%A8%E3%80%81%E7%BC%93%E5%AD%98LRU/"><span class="paginator-prev__icon"><i class="fas fa-angle-left"></i></span><span class="paginator-prev__text">Redis的消息订阅、pipeline、事务、modules、布隆过滤器、缓存LRU</span></a></div><div class="paginator-next"><a class="paginator-next__link" href="/2020/09/23/redis-%E4%BB%8B%E7%BB%8D%E5%8F%8ANIO%E5%8E%9F%E7%90%86%E4%BB%8B%E7%BB%8D/"><span class="paginator-prev__text">redis介绍及NIO原理介绍</span><span class="paginator-next__icon"><i class="fas fa-angle-right"></i></span></a></div></nav></footer></div></div></div><div class="sidebar-wrap" id="sidebar-wrap"><aside class="sidebar" id="sidebar"><div class="sidebar-nav"><span class="sidebar-nav-toc current">文章目录</span><span class="sidebar-nav-ov">站点概览</span></div><section class="sidebar-toc"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#string"><span class="toc-number">1.</span> <span class="toc-text">
+          string</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%95%B0%E5%80%BC%E5%9E%8B%E6%9C%89%E4%BB%80%E4%B9%88%E7%94%A8-%E4%B8%BE%E4%BE%8B"><span class="toc-number">1.1.</span> <span class="toc-text">
+          数值型有什么用 举例</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BD%8D%E8%BF%90%E7%AE%97%E6%9C%89%E4%BB%80%E4%B9%88%E7%94%A8-%E4%B8%BE%E4%BE%8B"><span class="toc-number">1.2.</span> <span class="toc-text">
+          位运算有什么用 举例</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#List"><span class="toc-number">2.</span> <span class="toc-text">
+          List</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#hash"><span class="toc-number">3.</span> <span class="toc-text">
+          hash</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#set"><span class="toc-number">4.</span> <span class="toc-text">
+          set</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#zset%EF%BC%88sorted-set%EF%BC%89"><span class="toc-number">5.</span> <span class="toc-text">
+          zset（sorted_set）</span></a></li></ol></section><!-- ov = overview--><section class="sidebar-ov hide"><div class="sidebar-ov-author"><div class="sidebar-ov-author__avatar"><img class="sidebar-ov-author__avatar_img" src="https://wx2.sbimg.cn/2020/09/22/GJ1jY.md.jpg" alt="avatar"></div><p class="sidebar-ov-author__text">write code and love life</p></div><div class="sidebar-ov-social"><a class="sidebar-ov-social-item" href="https://github.com/bugORdemo" target="_blank" rel="noopener" data-popover="Github" data-popover-pos="up"><span class="sidebar-ov-social-item__icon"><i class="fab fa-github"></i></span></a><a class="sidebar-ov-social-item" href="NullPointerEXC-H" target="_blank" rel="noopener" data-popover="微信" data-popover-pos="up"><span class="sidebar-ov-social-item__icon"><i class="fab fa-weixin"></i></span></a><a class="sidebar-ov-social-item" href="798968439" target="_blank" rel="noopener" data-popover="QQ" data-popover-pos="up"><span class="sidebar-ov-social-item__icon"><i class="fab fa-qq"></i></span></a></div><div class="sidebar-ov-cc"><a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank" rel="noopener" data-popover="知识共享许可协议" data-popover-pos="up"><img src="/images/cc-by-nc-sa.svg"></a></div></section><div class="sidebar-reading"><div class="sidebar-reading-info"><span class="sidebar-reading-info__text">你已阅读了 </span><span class="sidebar-reading-info__num">0</span></div><div class="sidebar-reading-line"></div></div></aside></div><div class="clearfix"></div></div></main><footer class="footer" id="footer"><div class="footer-inner"><div><span>Copyright © 2020</span><span class="footer__icon"><i class="fas fa-heart"></i></span><span><a href="https://github.com/bugORdemo" rel="noopener" target="_blank">bugORdemo</a></span></div><div><span>由 <a href="http://hexo.io/" title="Hexo" target="_blank" rel="noopener">Hexo</a> 强力驱动</span><span> v5.2.0</span><span class="footer__devider">|</span><span>主题 - <a href="https://github.com/liuyib/hexo-theme-stun/" title="Stun" target="_blank" rel="noopener">Stun</a></span><span> v2.1.1</span></div><div class="busuanzi"><span class="busuanzi-siteuv"><span class="busuanzi-siteuv__icon"><i class="fas fa-user"></i></span><span class="busuanzi-siteuv__info">访问人数</span><span class="busuanzi-siteuv__value" id="busuanzi_value_site_uv"></span></span><span class="busuanzi-sitepv"><span class="busuanzi-siteuv__icon"><i class="fas fa-eye"></i></span><span class="busuanzi-siteuv__info">浏览总量</span><span class="busuanzi-siteuv__value" id="busuanzi_value_site_pv"></span></span></div></div></footer><div class="loading-bar" id="loading-bar"><div class="loading-bar__progress"></div></div><div class="back2top" id="back2top"><span class="back2top__icon"><i class="fas fa-rocket"></i></span></div></div><script src="https://cdn.jsdelivr.net/npm/jquery@v3.4.1/dist/jquery.min.js"></script><script src="https://cdn.jsdelivr.net/npm/velocity-animate@1.5.2/velocity.min.js"></script><script src="https://cdn.jsdelivr.net/npm/velocity-animate@1.5.2/velocity.ui.min.js"></script><script src="https://cdn.jsdelivr.net/npm/ribbon.js@latest/dist/ribbon.min.js" size="120" alpha="0.6" zIndex="-1"></script><script src="https://cdn.jsdelivr.net/gh/fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.js"></script><script src="https://cdn.jsdelivr.net/npm/masonry-layout@4.2.2/dist/masonry.pkgd.min.js"></script><script src="https://cdn.jsdelivr.net/npm/lazyload@2.0.0-rc.2/lazyload.min.js"></script><script src="https://cdn.jsdelivr.net/npm/pjax@latest/pjax.min.js"></script><script>window.addEventListener('DOMContentLoaded', function () {
+  var pjax = new Pjax({"selectors":["head title","#main",".pjax-reload"],"history":true,"scrollTo":false,"scrollRestoration":false,"cacheBust":false,"debug":false,"currentUrlFullReload":false,"timeout":0});
+  // 加载进度条的计时器
+  var loadingTimer = null;
+
+  // 重置页面 Y 方向上的滚动偏移量
+  document.addEventListener('pjax:send', function () {
+    $('.header-nav-menu').removeClass('show');
+    if (CONFIG.pjax && CONFIG.pjax.avoidBanner) {
+      $('html').velocity('scroll', {
+        duration: 500,
+        offset: $('#header').height(),
+        easing: 'easeInOutCubic'
+      });
+    }
+
+    var loadingBarWidth = 20;
+    var MAX_LOADING_WIDTH = 95;
+
+    $('.loading-bar').addClass('loading');
+    $('.loading-bar__progress').css('width', loadingBarWidth + '%');
+    clearInterval(loadingTimer);
+    loadingTimer = setInterval(function () {
+      loadingBarWidth += 3;
+      if (loadingBarWidth > MAX_LOADING_WIDTH) {
+        loadingBarWidth = MAX_LOADING_WIDTH;
+      }
+      $('.loading-bar__progress').css('width', loadingBarWidth + '%');
+    }, 500);
+  }, false);
+
+  window.addEventListener('pjax:complete', function () {
+    clearInterval(loadingTimer);
+    $('.loading-bar__progress').css('width', '100%');
+    $('.loading-bar').removeClass('loading');
+    setTimeout(function () {
+      $('.loading-bar__progress').css('width', '0');
+    }, 400);
+    $('link[rel=prefetch], script[data-pjax-rm]').each(function () {
+      $(this).remove();
+    });
+    $('script[data-pjax], #pjax-reload script').each(function () {
+      $(this).parent().append($(this).remove());
+    });
+
+    if (Stun.utils.pjaxReloadBoot) {
+      Stun.utils.pjaxReloadBoot();
+    }
+    if (Stun.utils.pjaxReloadScroll) {
+      Stun.utils.pjaxReloadScroll();
+    }
+    if (Stun.utils.pjaxReloadSidebar) {
+      Stun.utils.pjaxReloadSidebar();
+    }
+    if (false) {
+      if (Stun.utils.pjaxReloadHeader) {
+        Stun.utils.pjaxReloadHeader();
+      }
+      if (Stun.utils.pjaxReloadScrollIcon) {
+        Stun.utils.pjaxReloadScrollIcon();
+      }
+      if (Stun.utils.pjaxReloadLocalSearch) {
+        Stun.utils.pjaxReloadLocalSearch();
+      }
+    }
+  }, false);
+}, false);</script><div id="pjax-reload"><script src="https://cdn.jsdelivr.net/npm/quicklink@1.0.1/dist/quicklink.umd.js"></script><script>function initQuicklink() {
+  quicklink({
+    timeout: '10000',
+    priority: true,
+    ignores: [uri => uri.includes('#'), uri => uri === 'https://bugordemo.github.io/2020/09/23/Redis%E7%9A%84%E7%B1%BB%E5%9E%8B%E5%8F%8A%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/', /\/api\/?/,uri => uri.includes('.xml'),uri => uri.includes('.zip'),(uri, el) => el.hasAttribute('nofollow'),(uri, el) => el.hasAttribute('noprefetch')]
+  });
+}
+
+if (true || false) {
+  initQuicklink();
+} else {
+  window.addEventListener('DOMContentLoaded', initQuicklink, false);
+}</script><script src="https://cdn.jsdelivr.net/gh/sukkaw/busuanzi@latest/bsz.pure.mini.js" async></script></div><script src="/js/utils.js?v=2.1.1"></script><script src="/js/stun-boot.js?v=2.1.1"></script><script src="/js/scroll.js?v=2.1.1"></script><script src="/js/header.js?v=2.1.1"></script><script src="/js/sidebar.js?v=2.1.1"></script><script src="/live2dw/lib/L2Dwidget.min.js?094cbace49a39548bed64abff5988b05"></script><script>L2Dwidget.init({"model":{"jsonPath":"/live2dw/assets/koharu.model.json"},"display":{"position":"right","width":200,"height":350},"mobile":{"show":false},"log":false,"pluginJsPath":"lib/","pluginModelPath":"assets/","pluginRootPath":"live2dw/","tagMode":false});</script></body></html>

@@ -1,0 +1,236 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="format-detection" content="telephone=no"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black"><link rel="icon" href="/assets/bilibili.jpg?v=2.1.1" type="image/png" sizes="32x32"><meta name="description" content="服务器参数设置                           general 通用        datadir&#x3D;&#x2F;var&#x2F;lib&#x2F;mysql数据文件存放的目录">
+<meta property="og:type" content="article">
+<meta property="og:title" content="MySQL服务器参数设置">
+<meta property="og:url" content="https://bugordemo.github.io/2020/09/23/MySQL%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%8F%82%E6%95%B0%E8%AE%BE%E7%BD%AE/index.html">
+<meta property="og:site_name" content="DemoOrBug">
+<meta property="og:description" content="服务器参数设置                           general 通用        datadir&#x3D;&#x2F;var&#x2F;lib&#x2F;mysql数据文件存放的目录">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2020-09-22T23:44:15.000Z">
+<meta property="article:modified_time" content="2020-09-22T23:45:14.968Z">
+<meta property="article:author" content="hyf">
+<meta property="article:tag" content="MySQL">
+<meta property="article:tag" content="MySQL调优">
+<meta name="twitter:card" content="summary"><title>MySQL服务器参数设置 | DemoOrBug</title><link ref="canonical" href="https://bugordemo.github.io/2020/09/23/MySQL%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%8F%82%E6%95%B0%E8%AE%BE%E7%BD%AE/"><link rel="dns-prefetch" href="https://cdn.jsdelivr.net"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.12.1/css/all.min.css" type="text/css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.css" type="text/css"><link rel="stylesheet" href="/css/index.css?v=2.1.1"><script>var Stun = window.Stun || {};
+var CONFIG = {
+  root: '/',
+  algolia: undefined,
+  fontIcon: {"prompt":{"success":"fas fa-check-circle","info":"fas fa-arrow-circle-right","warning":"fas fa-exclamation-circle","error":"fas fa-times-circle"},"copyBtn":"fas fa-copy"},
+  sidebar: {"offsetTop":"20px","tocMaxDepth":5},
+  header: {"enable":true,"showOnPost":true,"scrollDownIcon":true},
+  postWidget: {"endText":true},
+  nightMode: {"enable":true},
+  back2top: {"enable":true},
+  codeblock: {"style":"carbon","highlight":"light","wordWrap":false},
+  reward: true,
+  fancybox: true,
+  zoomImage: {"gapAside":"20px"},
+  galleryWaterfall: {"colWidth":"220px","gapX":"10px"},
+  lazyload: true,
+  pjax: {"avoidBanner":true},
+  externalLink: {"icon":{"enable":true,"name":"fas fa-external-link-alt"}},
+  shortcuts: {"switchPost":true},
+  prompt: {"copyButton":"复制","copySuccess":"复制成功","copyError":"复制失败"},
+  sourcePath: {"js":"js","css":"css","images":"images"},
+};
+
+window.CONFIG = CONFIG;</script><meta name="generator" content="Hexo 5.2.0"></head><body><div class="container" id="container"><header class="header" id="header"><div class="header-inner"><nav class="header-nav header-nav--fixed"><div class="header-nav-inner"><div class="header-nav-menubtn"><i class="fas fa-bars"></i></div><div class="header-nav-menu"><div class="header-nav-menu-item"><a class="header-nav-menu-item__link" href="/"><span class="header-nav-menu-item__icon"><i class="fas fa-home"></i></span><span class="header-nav-menu-item__text">首页</span></a></div><div class="header-nav-menu-item"><a class="header-nav-menu-item__link" href="javascript:;" onclick="return false;"><span class="header-nav-menu-item__icon"><i class="fas fa-folder-open"></i></span><span class="header-nav-menu-item__text">文章</span></a><div class="header-nav-submenu"><div class="header-nav-submenu-item"><a class="header-nav-submenu-item__link" href="/archives/"><span class="header-nav-submenu-item__icon"><i class="fas fa-folder-open"></i></span><span class="header-nav-submenu-item__text">归档</span></a></div><div class="header-nav-submenu-item"><a class="header-nav-submenu-item__link" href="/categories/"><span class="header-nav-submenu-item__icon"><i class="fas fa-layer-group"></i></span><span class="header-nav-submenu-item__text">分类</span></a></div><div class="header-nav-submenu-item"><a class="header-nav-submenu-item__link" href="/tags/"><span class="header-nav-submenu-item__icon"><i class="fas fa-tags"></i></span><span class="header-nav-submenu-item__text">标签</span></a></div></div></div></div><div class="header-nav-mode"><div class="mode"><div class="mode-track"><span class="mode-track-moon"></span><span class="mode-track-sun"></span></div><div class="mode-thumb"></div></div></div></div></nav><div class="header-banner"><div class="header-banner-info"><div class="header-banner-info__title">DemoOrBug</div><div class="header-banner-info__subtitle">懒惰、急躁、傲慢 ———— 当代程序员美德</div></div><div class="header-banner-arrow"><div class="header-banner-arrow__icon"><i class="fas fa-angle-down"></i></div></div></div></div></header><main class="main" id="main"><div class="main-inner"><div class="content-wrap" id="content-wrap"><div class="content" id="content"><!-- Just used to judge whether it is an article page--><div id="is-post"></div><div class="post"><header class="post-header"><h1 class="post-title">MySQL服务器参数设置</h1><div class="post-meta"><span class="post-meta-item post-meta-item--createtime"><span class="post-meta-item__icon"><i class="far fa-calendar-plus"></i></span><span class="post-meta-item__info">发表于</span><span class="post-meta-item__value">2020-09-23</span></span><span class="post-meta-item post-meta-item--updatetime"><span class="post-meta-item__icon"><i class="far fa-calendar-check"></i></span><span class="post-meta-item__info">更新于</span><span class="post-meta-item__value">2020-09-23</span></span><span class="post-meta-item post-meta-item--wordcount"><span class="post-meta-item__icon"><i class="far fa-file-word"></i></span><span class="post-meta-item__info">字数统计</span><span class="post-meta-item__value">1.5k</span></span><span class="post-meta-item post-meta-item--readtime"><span class="post-meta-item__icon"><i class="far fa-clock"></i></span><span class="post-meta-item__info">阅读时长</span><span class="post-meta-item__value">8分</span></span><span class="post-meta-item post-meta-item--visitors"><span class="post-meta-item__icon"><i class="fas fa-eye"></i></span><span class="post-meta-item__info">阅读次数</span><span class="post-meta-item__value" id="busuanzi_value_page_pv"></span></span></div></header><div class="post-body">
+        <h1 id="服务器参数设置"   >
+          <a href="#服务器参数设置" class="heading-link"><i class="fas fa-link"></i></a>服务器参数设置</h1>
+      
+        <h2 id="general-通用"   >
+          <a href="#general-通用" class="heading-link"><i class="fas fa-link"></i></a>general 通用</h2>
+      <ol>
+<li><p>datadir=/var/lib/mysql<br>数据文件存放的目录</p>
+<a id="more"></a>
+</li>
+<li><p>socket=/var/lib/mysql/mysql.sock<br>mysql.socket表示server和client在同一台服务器，并且使用localhost进行连接，就会使用socket进行连接，一般不用动</p>
+</li>
+<li><p>pid_file=/var/lib/mysql/mysql.pid<br>存储mysql的pid</p>
+</li>
+<li><p>port=3306<br>mysql服务的端口号</p>
+</li>
+<li><p>default_storage_engine=InnoDB<br>mysql存储引擎，一般不改，如果需要其他存储引擎，在建表的时候加上engine=…即可</p>
+</li>
+<li><p><strong>skip-grant-tables</strong><br>当忘记mysql的用户名密码的时候，可以在mysql配置文件中配置该参数，跳过权限表验证，不需要密码即可登录mysql</p>
+</li>
+</ol>
+
+        <h2 id="character-字符"   >
+          <a href="#character-字符" class="heading-link"><i class="fas fa-link"></i></a>character 字符</h2>
+      <p><strong>不同的字符集占用的空间不同，合理设置</strong></p>
+<ol>
+<li>character_set_client<br> 客户端数据的字符集</li>
+<li>character_set_connection<br> mysql处理客户端发来的信息时，会把这些数据转换成连接的字符集格式</li>
+<li>character_set_results<br> mysql发送给客户端的结果集所用的字符集</li>
+<li>character_set_database<br> 数据库默认的字符集</li>
+<li>character_set_server<br> mysql server的默认字符集</li>
+</ol>
+
+        <h2 id="connection-连接"   >
+          <a href="#connection-连接" class="heading-link"><i class="fas fa-link"></i></a>connection 连接</h2>
+      <ol>
+<li>max_connections<br> mysql的最大连接数，如果数据库的并发连接请求比较大，应该调高该值。默认值取决于硬件配置</li>
+<li>max_user_connections<br> 限制每个用户的连接个数，0代表不限制</li>
+<li>back_log<br> mysql能够暂存的连接数量，当mysql的线程在一个很短时间内得到非常多的连接请求时，就会起作用，如果mysql的连接数量达到max_connections时，新的请求会被存储在堆栈中，以等待某一个连接释放资源，如果等待连接的数量超过back_log,则不再接受连接资源</li>
+<li>wait_timeout<br> mysql在关闭一个非交互的连接之前需要等待的时长</li>
+<li>interactive_timeout<br> 关闭一个交互连接之前需要等待的秒数</li>
+</ol>
+
+        <h2 id="log-日志"   >
+          <a href="#log-日志" class="heading-link"><i class="fas fa-link"></i></a>log 日志</h2>
+      <ol>
+<li>log_error<br> 指定错误日志文件名称，用于记录当mysqld启动和停止时，以及服务器在运行中发生任何严重错误时的相关信息</li>
+<li>log_bin<br> 指定二进制日志文件名称，用于记录对数据造成更改的所有查询语句。默认不开启</li>
+<li>binlog_do_db<br> 指定将更新记录到二进制日志的数据库，其他所有没有显式指定的数据库更新将忽略，不记录在日志中</li>
+<li>binlog_ignore_db<br> 指定不将更新记录到二进制日志的数据库</li>
+<li>sync_binlog<br> 指定多少次写日志后同步磁盘</li>
+<li>general_log<br> 是否开启查询日志记录 默认关闭</li>
+<li>general_log_file<br> 指定查询日志文件名，用于记录所有的查询语句</li>
+<li>slow_query_log<br> 是否开启慢查询日志记录 默认关闭</li>
+<li>slow_query_log_file<br> 指定慢查询日志文件名称，用于记录耗时比较长的查询语句</li>
+<li>long_query_time<br> 设置慢查询的时间，超过这个时间的查询语句才会记录日志</li>
+<li>log_slow_admin_statements<br> 是否将管理语句写入慢查询日志</li>
+</ol>
+
+        <h2 id="cache-缓存"   >
+          <a href="#cache-缓存" class="heading-link"><i class="fas fa-link"></i></a>cache 缓存</h2>
+      <ol>
+<li><p>key_buffer_size<br> 索引缓存区的大小（只对myisam表起作用）</p>
+</li>
+<li><p>query cache 查询缓存相关，8以后已经没了</p>
+<ol>
+<li>query_cache_size：查询缓存的大小，未来版本被删除<ol>
+<li>show status like ‘%Qcache%’;查看缓存的相关属性</li>
+<li>Qcache_free_blocks：缓存中相邻内存块的个数，如果值比较大，那么查询缓存中碎片比较多</li>
+<li>Qcache_free_memory：查询缓存中剩余的内存大小</li>
+<li>Qcache_hits：表示有多少此命中缓存</li>
+<li>Qcache_inserts：表示多少次未命中而插入</li>
+<li>Qcache_lowmen_prunes：多少条query因为内存不足而被移除cache</li>
+<li>Qcache_queries_in_cache：当前cache中缓存的query数量</li>
+<li>Qcache_total_blocks：当前cache中block的数量</li>
+</ol>
+</li>
+<li>query_cache_limit：超出此大小的查询将不被缓存</li>
+<li>query_cache_min_res_unit：缓存块最小大小</li>
+<li>query_cache_type：缓存类型，决定缓存什么样的查询<ol>
+<li>0表示禁用</li>
+<li>1表示将缓存所有结果，除非sql语句中使用sql_no_cache禁用查询缓存</li>
+<li>2表示只缓存select语句中通过sql_cache指定需要缓存的查询</li>
+</ol>
+</li>
+</ol>
+</li>
+<li><p>sort_buffer_size<br> 每个需要排序的线程分派该大小的缓冲区</p>
+</li>
+<li><p>max_allowed_packet=32M<br> 限制server接受的数据包大小</p>
+</li>
+<li><p>join_buffer_size=2M<br> 表示关联缓存的大小</p>
+</li>
+<li><p>thread_cache_size 线程缓存大小<br> 服务器线程缓存，这个值表示可以重新利用保存再缓存中的线程数量，当断开连接时，那么客户端的线程将被放到缓存中以响应下一个客户而不是销毁，如果线程重新被请求，那么请求将从缓存中读取，如果缓存中是空的或者是新的请求，这个线程将被重新请求，那么这个线程将被重新创建，如果有很多新的线程，增加这个值即可</p>
+<ol>
+<li>Threads_cached：代表当前此时此刻线程缓存中有多少空闲线程</li>
+<li>Threads_connected：代表当前已建立连接的数量</li>
+<li>Threads_created：代表最近一次服务启动，已创建现成的数量，如果该值比较大，那么服务器会一直再创建线程</li>
+<li>Threads_running：代表当前激活的线程数</li>
+</ol>
+</li>
+</ol>
+
+        <h2 id="INNODB"   >
+          <a href="#INNODB" class="heading-link"><i class="fas fa-link"></i></a>INNODB</h2>
+      <ol>
+<li>innodb_buffer_pool_size=<br> 该参数指定大小的内存来缓冲数据和索引，最大可以设置为物理内存的80%</li>
+<li>innodb_flush_log_at_trx_commit<br> 主要控制innodb将log buffer中的数据写入日志文件并flush磁盘的时间点，值分别为0，1，2</li>
+<li>innodb_thread_concurrency<br> 设置innodb线程的并发数，默认为0表示不受限制，如果要设置建议跟服务器的cpu核心数一致或者是cpu核心数的两倍</li>
+<li>innodb_log_buffer_size<br> 此参数确定日志文件所用的内存大小，以M为单位</li>
+<li>innodb_log_file_size<br> 此参数确定数据日志文件的大小，以M为单位</li>
+<li>innodb_log_files_in_group<br> 以循环方式将日志文件写到多个文件中，默认两个</li>
+<li>read_buffer_size<br> mysql读入缓冲区大小，对表进行顺序扫描的请求将分配到一个读入缓冲区</li>
+<li>read_rnd_buffer_size<br> mysql随机读的缓冲区大小</li>
+<li>innodb_file_per_table<br> 此参数确定为每张表分配一个新的文件</li>
+</ol>
+</div><footer class="post-footer"><div class="post-ending ending"><div class="ending__text">------ 本文结束，感谢您的阅读 ------</div></div><div class="post-copyright copyright"><div class="copyright-author"><span class="copyright-author__name">本文作者: </span><span class="copyright-author__value"><a href="https://bugordemo.github.io">hyf</a></span></div><div class="copyright-link"><span class="copyright-link__name">本文链接: </span><span class="copyright-link__value"><a href="https://bugordemo.github.io/2020/09/23/MySQL%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%8F%82%E6%95%B0%E8%AE%BE%E7%BD%AE/">https://bugordemo.github.io/2020/09/23/MySQL%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%8F%82%E6%95%B0%E8%AE%BE%E7%BD%AE/</a></span></div><div class="copyright-notice"><span class="copyright-notice__name">版权声明: </span><span class="copyright-notice__value">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" rel="external nofollow" target="_blank">BY-NC-SA</a> 许可协议。转载请注明出处！</span></div></div><div class="post-tags"><span class="post-tags-item"><span class="post-tags-item__icon"><i class="fas fa-tag"></i></span><a class="post-tags-item__link" href="https://bugordemo.github.io/tags/MySQL/">MySQL</a></span><span class="post-tags-item"><span class="post-tags-item__icon"><i class="fas fa-tag"></i></span><a class="post-tags-item__link" href="https://bugordemo.github.io/tags/MySQL%E8%B0%83%E4%BC%98/">MySQL调优</a></span></div><div class="post-reward reward"><div class="reward-button">请我喝杯咖啡~</div><div class="reward-qrcode"><span class="reward-qrcode-alipay"><img class="reward-qrcode-alipay__img" src="/assets/alipay.jpg"><div class="reward-qrcode-alipay__text">支付宝打赏</div></span><span class="reward-qrcode-wechat"><img class="reward-qrcode-wechat__img" src="/assets/wechat.jpg"><div class="reward-qrcode-wechat__text">微信打赏</div></span></div></div><nav class="post-paginator paginator"><div class="paginator-prev"><a class="paginator-prev__link" href="/2020/09/23/redis-%E4%BB%8B%E7%BB%8D%E5%8F%8ANIO%E5%8E%9F%E7%90%86%E4%BB%8B%E7%BB%8D/"><span class="paginator-prev__icon"><i class="fas fa-angle-left"></i></span><span class="paginator-prev__text">redis介绍及NIO原理介绍</span></a></div><div class="paginator-next"><a class="paginator-next__link" href="/2020/09/23/%E5%88%86%E5%8C%BA%E8%A1%A8/"><span class="paginator-prev__text">分区表</span><span class="paginator-next__icon"><i class="fas fa-angle-right"></i></span></a></div></nav></footer></div></div></div><div class="sidebar-wrap" id="sidebar-wrap"><aside class="sidebar" id="sidebar"><div class="sidebar-nav"><span class="sidebar-nav-toc current">文章目录</span><span class="sidebar-nav-ov">站点概览</span></div><section class="sidebar-toc"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#general-%E9%80%9A%E7%94%A8"><span class="toc-number">1.</span> <span class="toc-text">
+          general 通用</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#character-%E5%AD%97%E7%AC%A6"><span class="toc-number">2.</span> <span class="toc-text">
+          character 字符</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#connection-%E8%BF%9E%E6%8E%A5"><span class="toc-number">3.</span> <span class="toc-text">
+          connection 连接</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#log-%E6%97%A5%E5%BF%97"><span class="toc-number">4.</span> <span class="toc-text">
+          log 日志</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#cache-%E7%BC%93%E5%AD%98"><span class="toc-number">5.</span> <span class="toc-text">
+          cache 缓存</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#INNODB"><span class="toc-number">6.</span> <span class="toc-text">
+          INNODB</span></a></li></ol></section><!-- ov = overview--><section class="sidebar-ov hide"><div class="sidebar-ov-author"><div class="sidebar-ov-author__avatar"><img class="sidebar-ov-author__avatar_img" src="https://wx2.sbimg.cn/2020/09/22/GJ1jY.md.jpg" alt="avatar"></div><p class="sidebar-ov-author__text">write code and love life</p></div><div class="sidebar-ov-social"><a class="sidebar-ov-social-item" href="https://github.com/bugORdemo" target="_blank" rel="noopener" data-popover="Github" data-popover-pos="up"><span class="sidebar-ov-social-item__icon"><i class="fab fa-github"></i></span></a><a class="sidebar-ov-social-item" href="NullPointerEXC-H" target="_blank" rel="noopener" data-popover="微信" data-popover-pos="up"><span class="sidebar-ov-social-item__icon"><i class="fab fa-weixin"></i></span></a><a class="sidebar-ov-social-item" href="798968439" target="_blank" rel="noopener" data-popover="QQ" data-popover-pos="up"><span class="sidebar-ov-social-item__icon"><i class="fab fa-qq"></i></span></a></div><div class="sidebar-ov-cc"><a href="https://creativecommons.org/licenses/by-nc-sa/4.0/deed.zh" target="_blank" rel="noopener" data-popover="知识共享许可协议" data-popover-pos="up"><img src="/images/cc-by-nc-sa.svg"></a></div></section><div class="sidebar-reading"><div class="sidebar-reading-info"><span class="sidebar-reading-info__text">你已阅读了 </span><span class="sidebar-reading-info__num">0</span></div><div class="sidebar-reading-line"></div></div></aside></div><div class="clearfix"></div></div></main><footer class="footer" id="footer"><div class="footer-inner"><div><span>Copyright © 2020</span><span class="footer__icon"><i class="fas fa-heart"></i></span><span><a href="https://github.com/bugORdemo" rel="noopener" target="_blank">bugORdemo</a></span></div><div><span>由 <a href="http://hexo.io/" title="Hexo" target="_blank" rel="noopener">Hexo</a> 强力驱动</span><span> v5.2.0</span><span class="footer__devider">|</span><span>主题 - <a href="https://github.com/liuyib/hexo-theme-stun/" title="Stun" target="_blank" rel="noopener">Stun</a></span><span> v2.1.1</span></div><div class="busuanzi"><span class="busuanzi-siteuv"><span class="busuanzi-siteuv__icon"><i class="fas fa-user"></i></span><span class="busuanzi-siteuv__info">访问人数</span><span class="busuanzi-siteuv__value" id="busuanzi_value_site_uv"></span></span><span class="busuanzi-sitepv"><span class="busuanzi-siteuv__icon"><i class="fas fa-eye"></i></span><span class="busuanzi-siteuv__info">浏览总量</span><span class="busuanzi-siteuv__value" id="busuanzi_value_site_pv"></span></span></div></div></footer><div class="loading-bar" id="loading-bar"><div class="loading-bar__progress"></div></div><div class="back2top" id="back2top"><span class="back2top__icon"><i class="fas fa-rocket"></i></span></div></div><script src="https://cdn.jsdelivr.net/npm/jquery@v3.4.1/dist/jquery.min.js"></script><script src="https://cdn.jsdelivr.net/npm/velocity-animate@1.5.2/velocity.min.js"></script><script src="https://cdn.jsdelivr.net/npm/velocity-animate@1.5.2/velocity.ui.min.js"></script><script src="https://cdn.jsdelivr.net/npm/ribbon.js@latest/dist/ribbon.min.js" size="120" alpha="0.6" zIndex="-1"></script><script src="https://cdn.jsdelivr.net/gh/fancyapps/fancybox@3.5.7/dist/jquery.fancybox.min.js"></script><script src="https://cdn.jsdelivr.net/npm/masonry-layout@4.2.2/dist/masonry.pkgd.min.js"></script><script src="https://cdn.jsdelivr.net/npm/lazyload@2.0.0-rc.2/lazyload.min.js"></script><script src="https://cdn.jsdelivr.net/npm/pjax@latest/pjax.min.js"></script><script>window.addEventListener('DOMContentLoaded', function () {
+  var pjax = new Pjax({"selectors":["head title","#main",".pjax-reload"],"history":true,"scrollTo":false,"scrollRestoration":false,"cacheBust":false,"debug":false,"currentUrlFullReload":false,"timeout":0});
+  // 加载进度条的计时器
+  var loadingTimer = null;
+
+  // 重置页面 Y 方向上的滚动偏移量
+  document.addEventListener('pjax:send', function () {
+    $('.header-nav-menu').removeClass('show');
+    if (CONFIG.pjax && CONFIG.pjax.avoidBanner) {
+      $('html').velocity('scroll', {
+        duration: 500,
+        offset: $('#header').height(),
+        easing: 'easeInOutCubic'
+      });
+    }
+
+    var loadingBarWidth = 20;
+    var MAX_LOADING_WIDTH = 95;
+
+    $('.loading-bar').addClass('loading');
+    $('.loading-bar__progress').css('width', loadingBarWidth + '%');
+    clearInterval(loadingTimer);
+    loadingTimer = setInterval(function () {
+      loadingBarWidth += 3;
+      if (loadingBarWidth > MAX_LOADING_WIDTH) {
+        loadingBarWidth = MAX_LOADING_WIDTH;
+      }
+      $('.loading-bar__progress').css('width', loadingBarWidth + '%');
+    }, 500);
+  }, false);
+
+  window.addEventListener('pjax:complete', function () {
+    clearInterval(loadingTimer);
+    $('.loading-bar__progress').css('width', '100%');
+    $('.loading-bar').removeClass('loading');
+    setTimeout(function () {
+      $('.loading-bar__progress').css('width', '0');
+    }, 400);
+    $('link[rel=prefetch], script[data-pjax-rm]').each(function () {
+      $(this).remove();
+    });
+    $('script[data-pjax], #pjax-reload script').each(function () {
+      $(this).parent().append($(this).remove());
+    });
+
+    if (Stun.utils.pjaxReloadBoot) {
+      Stun.utils.pjaxReloadBoot();
+    }
+    if (Stun.utils.pjaxReloadScroll) {
+      Stun.utils.pjaxReloadScroll();
+    }
+    if (Stun.utils.pjaxReloadSidebar) {
+      Stun.utils.pjaxReloadSidebar();
+    }
+    if (false) {
+      if (Stun.utils.pjaxReloadHeader) {
+        Stun.utils.pjaxReloadHeader();
+      }
+      if (Stun.utils.pjaxReloadScrollIcon) {
+        Stun.utils.pjaxReloadScrollIcon();
+      }
+      if (Stun.utils.pjaxReloadLocalSearch) {
+        Stun.utils.pjaxReloadLocalSearch();
+      }
+    }
+  }, false);
+}, false);</script><div id="pjax-reload"><script src="https://cdn.jsdelivr.net/npm/quicklink@1.0.1/dist/quicklink.umd.js"></script><script>function initQuicklink() {
+  quicklink({
+    timeout: '10000',
+    priority: true,
+    ignores: [uri => uri.includes('#'), uri => uri === 'https://bugordemo.github.io/2020/09/23/MySQL%E6%9C%8D%E5%8A%A1%E5%99%A8%E5%8F%82%E6%95%B0%E8%AE%BE%E7%BD%AE/', /\/api\/?/,uri => uri.includes('.xml'),uri => uri.includes('.zip'),(uri, el) => el.hasAttribute('nofollow'),(uri, el) => el.hasAttribute('noprefetch')]
+  });
+}
+
+if (true || false) {
+  initQuicklink();
+} else {
+  window.addEventListener('DOMContentLoaded', initQuicklink, false);
+}</script><script src="https://cdn.jsdelivr.net/gh/sukkaw/busuanzi@latest/bsz.pure.mini.js" async></script></div><script src="/js/utils.js?v=2.1.1"></script><script src="/js/stun-boot.js?v=2.1.1"></script><script src="/js/scroll.js?v=2.1.1"></script><script src="/js/header.js?v=2.1.1"></script><script src="/js/sidebar.js?v=2.1.1"></script><script src="/live2dw/lib/L2Dwidget.min.js?094cbace49a39548bed64abff5988b05"></script><script>L2Dwidget.init({"model":{"jsonPath":"/live2dw/assets/koharu.model.json"},"display":{"position":"right","width":200,"height":350},"mobile":{"show":false},"log":false,"pluginJsPath":"lib/","pluginModelPath":"assets/","pluginRootPath":"live2dw/","tagMode":false});</script></body></html>
